@@ -1,0 +1,13 @@
+/* dashboard.module.css */
+.shell {
+  display: flex;
+  min-height: 100dvh;
+}
+
+.main {
+  flex: 1;
+  margin-left: 68px; /* ancho del sidebar */
+  background: #f8fafc;
+  min-height: 100dvh;
+  overflow-x: hidden;
+}
