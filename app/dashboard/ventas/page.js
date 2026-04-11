@@ -1,10 +1,10 @@
-import Venta from "../../../components/venta/Venta";
+import { Venta } from "../../../components/venta/Venta";
 
+export const metadata = {
+    title: "Ventas | Sistema E-Commerce",
+    description: "Módulo de caja — crear y gestionar órdenes de venta",
+};
 
-function page() {
-    return (
-        <Venta />
-    );
+export default function VentasPage() {
+    return <Venta />;
 }
-
-export default page;

@@ -13,7 +13,7 @@ const QUICK_ACCESS = [
     label: "Establecimientos",
     description: "Gestiona los establecimientos registrados",
     icon: Store,
-    href: "/dashboard/establecimientos",
+    href: "/dashboard/Establecimientos",
     color: "#6366f1",
     bg: "rgba(99,102,241,0.1)",
   },

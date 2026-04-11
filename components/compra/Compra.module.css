@@ -1,0 +1,287 @@
+/* Compra.module.css — layout igual que Venta, color naranja/ámbar */
+
+.root {
+    display: flex;
+    flex-direction: column;
+    height: 100dvh;
+    overflow: hidden;
+    background: #f1f5f9;
+    font-family: inherit;
+}
+
+/* ─── Tabs móvil ─── */
+.mobileTabs { display: none; background: #fff; border-bottom: 1px solid #e2e8f0; z-index: 10; }
+@media (max-width: 860px) { .mobileTabs { display: flex; } .root { height: auto; overflow: visible; } }
+
+.mobileTab {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    padding: 0.85rem 0;
+    border: none;
+    background: transparent;
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: #64748b;
+    cursor: pointer;
+    font-family: inherit;
+    border-bottom: 2px solid transparent;
+    transition: color 0.15s;
+}
+.mobileTabActive { color: #f59e0b; border-bottom-color: #f59e0b; }
+
+/* ─── Layout ─── */
+.layout { display: grid; grid-template-columns: 1fr 380px; flex: 1; overflow: hidden; }
+@media (max-width: 860px) { .layout { display: block; overflow: visible; } .panelHiddenMobile { display: none; } }
+
+/* ─── Paneles ─── */
+.panelLeft {
+    display: flex;
+    flex-direction: column;
+    background: #fff;
+    border-right: 1px solid #e2e8f0;
+    overflow: hidden;
+}
+@media (max-width: 860px) { .panelLeft { overflow: visible; border-right: none; } }
+
+.panelRight {
+    display: flex;
+    flex-direction: column;
+    background: #f8fafc;
+    border-left: 1px solid #e2e8f0;
+    overflow: hidden;
+}
+@media (max-width: 860px) { .panelRight { border-left: none; overflow: visible; min-height: 60vh; } }
+
+/* ─── Header ─── */
+.panelHeader {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1.1rem 1.25rem 0.875rem;
+    border-bottom: 1px solid #f1f5f9;
+    flex-shrink: 0;
+}
+.panelTitleRow { display: flex; align-items: center; gap: 0.625rem; }
+.panelIcon { color: #f59e0b; }
+.panelIconAlt { color: #6366f1; }
+.panelTitle { font-size: 1.05rem; font-weight: 700; color: #0f172a; margin: 0; }
+
+/* ─── Secciones ─── */
+.section { padding: 0.875rem 1.25rem; flex-shrink: 0; border-bottom: 1px solid #f1f5f9; }
+.sectionFlex { flex: 1; overflow: hidden; }
+
+.sectionLabel { font-size: 0.72rem; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.07em; margin: 0 0 0.625rem; }
+.sectionLabelRow { display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.625rem; }
+
+/* ─── Buscador ─── */
+.searchWrap { position: relative; }
+.searchBox { position: relative; display: flex; align-items: center; }
+.searchIco { position: absolute; left: 0.875rem; color: #94a3b8; pointer-events: none; }
+.searchIcoRight { position: absolute; right: 0.875rem; color: #94a3b8; pointer-events: none; }
+
+.searchInput {
+    width: 100%;
+    padding: 0.65rem 2.5rem 0.65rem 2.5rem;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 0.875rem;
+    font-size: 0.875rem;
+    color: #0f172a;
+    background: #f8fafc;
+    outline: none;
+    font-family: inherit;
+    transition: border-color 0.18s, box-shadow 0.18s, background 0.18s;
+}
+.searchInput:focus { border-color: #f59e0b; background: #fff; box-shadow: 0 0 0 3px rgba(245,158,11,.1); }
+.searchInput:disabled { opacity: 0.6; }
+
+/* ─── Dropdown ─── */
+.dropdown {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0; right: 0;
+    background: #fff;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 0.875rem;
+    box-shadow: 0 10px 30px rgba(0,0,0,.1);
+    list-style: none;
+    margin: 0;
+    padding: 0.375rem;
+    z-index: 50;
+    max-height: 280px;
+    overflow-y: auto;
+    animation: fadeIn 0.12s ease;
+}
+@keyframes fadeIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
+
+.dropdownItem {
+    display: flex;
+    align-items: center;
+    gap: 0.625rem;
+    width: 100%;
+    padding: 0.6rem 0.75rem;
+    border: none;
+    background: transparent;
+    border-radius: 0.625rem;
+    cursor: pointer;
+    text-align: left;
+    font-family: inherit;
+    transition: background 0.12s;
+}
+.dropdownItem:hover { background: rgba(245,158,11,.06); }
+
+.dropdownIcon { display: flex; align-items: center; justify-content: center; width: 30px; height: 30px; background: rgba(245,158,11,.1); color: #f59e0b; border-radius: 0.5rem; flex-shrink: 0; }
+.dropdownInfo { flex: 1; min-width: 0; }
+.dropdownName { display: block; font-size: 0.85rem; font-weight: 600; color: #0f172a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dropdownSlug { display: block; font-size: 0.72rem; color: #94a3b8; font-family: monospace; }
+.dropdownPlus { color: #94a3b8; flex-shrink: 0; }
+
+/* ─── Carrito ─── */
+.cartEmpty { display: flex; flex-direction: column; align-items: center; gap: 0.5rem; padding: 1.5rem 1rem; color: #94a3b8; font-size: 0.82rem; text-align: center; }
+.cartEmptyIcon { color: #cbd5e1; }
+
+.cartList { display: flex; flex-direction: column; gap: 0.5rem; max-height: 200px; overflow-y: auto; padding-right: 2px; }
+.cartList::-webkit-scrollbar { width: 5px; }
+.cartList::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 99px; }
+
+.cartItem {
+    display: grid;
+    grid-template-columns: 1fr auto auto;
+    align-items: center;
+    gap: 0.625rem;
+    padding: 0.6rem 0.875rem;
+    background: #f8fafc;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 0.875rem;
+    transition: border-color 0.15s;
+}
+.cartItem:hover { border-color: #fde68a; }
+
+.cartItemInfo { min-width: 0; }
+.cartItemName { font-size: 0.82rem; font-weight: 600; color: #0f172a; margin: 0 0 0.25rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+.precioWrap { display: flex; align-items: center; gap: 0.4rem; }
+.precioLabel { font-size: 0.68rem; color: #94a3b8; white-space: nowrap; }
+.precioInputWrap { display: flex; align-items: center; border: 1.5px solid #e2e8f0; border-radius: 0.5rem; background: #fff; overflow: hidden; transition: border-color 0.12s; }
+.precioInputWrap:focus-within { border-color: #f59e0b; }
+.precioPrefix { padding: 0 0.4rem; font-size: 0.75rem; font-weight: 700; color: #f59e0b; background: rgba(245,158,11,.07); align-self: stretch; display: flex; align-items: center; border-right: 1px solid #e2e8f0; }
+.precioInput { width: 75px; padding: 0.35rem 0.5rem; border: none; outline: none; font-size: 0.9rem; font-weight: 700; color: #0f172a; font-family: inherit; background: transparent; }
+
+.cajaCheck { font-size: 0.75rem; color: #64748b; margin-top: 0.4rem; display: flex; align-items: center; gap: 0.3rem; cursor: pointer; }
+.cajaInfo { font-size: 0.72rem; font-weight: 600; color: #f59e0b; margin: 0.25rem 0 0; }
+
+/* ─── Controles qty ─── */
+.cartItemControls { display: flex; align-items: center; gap: 0.375rem; background: #fff; border: 1.5px solid #e2e8f0; border-radius: 0.625rem; padding: 0.2rem; }
+.qtyBtn { display: flex; align-items: center; justify-content: center; width: 28px; height: 28px; border: none; border-radius: 0.45rem; background: transparent; color: #64748b; cursor: pointer; transition: background 0.12s, color 0.12s; }
+.qtyBtn:hover { background: #f1f5f9; color: #0f172a; }
+.qtyBtnAdd:hover { background: rgba(245,158,11,.1); color: #f59e0b; }
+.qtyNum { font-size: 0.95rem; font-weight: 700; color: #0f172a; min-width: 24px; text-align: center; }
+
+.cartItemRight { display: flex; flex-direction: column; align-items: flex-end; gap: 0.25rem; }
+.cartSubtotal { font-size: 0.875rem; font-weight: 700; color: #f59e0b; }
+.cartItemDel { display: flex; align-items: center; justify-content: center; width: 24px; height: 24px; border: none; background: transparent; color: #cbd5e1; cursor: pointer; border-radius: 0.375rem; transition: background 0.12s, color 0.12s; }
+.cartItemDel:hover { background: rgba(239,68,68,.08); color: #ef4444; }
+
+/* ─── Botón limpiar ─── */
+.btnClear { display: inline-flex; align-items: center; gap: 0.3rem; padding: 0.25rem 0.625rem; background: #f1f5f9; border: 1.5px solid #e2e8f0; border-radius: 0.5rem; font-size: 0.72rem; font-weight: 600; color: #64748b; cursor: pointer; transition: background 0.12s; font-family: inherit; }
+.btnClear:hover { background: #fee2e2; color: #dc2626; border-color: #fca5a5; }
+
+/* ─── Datos de la compra ─── */
+.orderFields { display: flex; flex-direction: column; gap: 0.75rem; }
+.field { display: flex; flex-direction: column; gap: 0.3rem; }
+.fieldLabel { display: flex; align-items: center; gap: 0.3rem; font-size: 0.75rem; font-weight: 600; color: #64748b; }
+.row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0.625rem; }
+.loadingRow { display: flex; align-items: center; gap: 0.5rem; font-size: 0.82rem; color: #64748b; }
+
+.input, .select {
+    padding: 0.6rem 0.875rem;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 0.75rem;
+    font-size: 0.875rem;
+    color: #0f172a;
+    background: #fff;
+    font-family: inherit;
+    outline: none;
+    width: 100%;
+    transition: border-color 0.18s, box-shadow 0.18s;
+}
+.input:focus, .select:focus { border-color: #f59e0b; box-shadow: 0 0 0 3px rgba(245,158,11,.08); }
+.select { cursor: pointer; appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 0.75rem center; padding-right: 2.25rem; }
+
+/* ─── Resumen + Confirmar ─── */
+.orderSummary { margin-top: auto; flex-shrink: 0; padding: 1rem 1.25rem 1.5rem; border-top: 1px solid #f1f5f9; background: #fff; }
+.summaryRow { display: flex; align-items: center; justify-content: space-between; padding: 0.25rem 0; font-size: 0.85rem; color: #64748b; }
+.summaryVal { font-weight: 600; color: #0f172a; }
+.summaryTotal { font-size: 1.1rem; font-weight: 700; color: #0f172a; margin-top: 0.375rem; padding-top: 0.625rem; border-top: 1.5px solid #e2e8f0; }
+
+.btnConfirm {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    width: 100%;
+    margin-top: 1rem;
+    padding: 0.875rem;
+    background: linear-gradient(135deg, #f59e0b, #d97706);
+    color: #fff;
+    border: none;
+    border-radius: 0.875rem;
+    font-size: 1rem;
+    font-weight: 700;
+    cursor: pointer;
+    font-family: inherit;
+    box-shadow: 0 4px 14px rgba(245,158,11,.35);
+    transition: opacity 0.18s;
+}
+.btnConfirm:hover { opacity: 0.9; }
+.btnConfirm:disabled { opacity: 0.55; cursor: not-allowed; box-shadow: none; }
+
+/* ─── Resumen del panel derecho ─── */
+.daySummary { display: flex; align-items: center; margin: 0 1rem 0.875rem; background: linear-gradient(135deg, #f59e0b, #b45309); border-radius: 0.875rem; padding: 1rem 1.25rem; color: #fff; flex-shrink: 0; }
+.dayStat { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 0.1rem; }
+.dayStatNum { font-size: 1.2rem; font-weight: 800; line-height: 1.2; }
+.dayStatLabel { font-size: 0.7rem; opacity: 0.8; font-weight: 500; }
+.dayStatDivider { width: 1px; height: 36px; background: rgba(255,255,255,.25); margin: 0 0.5rem; flex-shrink: 0; }
+
+.btnRefresh { display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; border: 1.5px solid #e2e8f0; border-radius: 0.625rem; background: #fff; color: #64748b; cursor: pointer; transition: background 0.15s; }
+.btnRefresh:hover { background: #f1f5f9; }
+.btnRefresh:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* ─── Cards compra ─── */
+.histScroll { flex: 1; overflow-y: auto; padding: 0 1rem 1rem; }
+.histScroll::-webkit-scrollbar { width: 5px; }
+.histScroll::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 99px; }
+.cardList { display: flex; flex-direction: column; gap: 0.625rem; }
+
+.compraCard { background: #fff; border: 1.5px solid #e2e8f0; border-radius: 0.875rem; padding: 0.875rem; transition: transform 0.15s, box-shadow 0.15s; animation: cardIn 0.2s ease; }
+.compraCard:hover { transform: translateY(-1px); box-shadow: 0 4px 14px rgba(0,0,0,.06); }
+@keyframes cardIn { from { opacity: 0; transform: translateX(8px); } to { opacity: 1; transform: translateX(0); } }
+
+.compraCardHeader { display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.5rem; }
+.compraId { font-size: 0.8rem; font-weight: 700; color: #f59e0b; font-family: monospace; }
+.compraTotal { font-size: 1rem; font-weight: 800; color: #0f172a; }
+.compraCardBody { display: flex; flex-direction: column; gap: 0.2rem; }
+.compraRow { display: flex; align-items: center; gap: 0.35rem; font-size: 0.8rem; color: #475569; }
+.compraIcon { color: #94a3b8; flex-shrink: 0; }
+
+/* ─── Misc ─── */
+.errorMsg { display: flex; align-items: center; gap: 0.4rem; padding: 0.6rem 0.875rem; background: rgba(239,68,68,.07); border: 1px solid rgba(239,68,68,.2); border-radius: 0.625rem; font-size: 0.8rem; color: #dc2626; margin-bottom: 0.625rem; }
+.errColor { color: #ef4444; }
+.centerMsg { display: flex; flex-direction: column; align-items: center; gap: 0.5rem; padding: 2.5rem 1rem; font-size: 0.875rem; color: #64748b; }
+.emptyState { display: flex; flex-direction: column; align-items: center; gap: 0.625rem; padding: 3rem 1rem; text-align: center; font-size: 0.875rem; color: #94a3b8; }
+.emptyIcon { color: #cbd5e1; }
+.btnRetry { margin-top: 0.375rem; padding: 0.4rem 0.875rem; background: #f1f5f9; border: 1.5px solid #e2e8f0; border-radius: 0.625rem; font-size: 0.8rem; cursor: pointer; font-family: inherit; color: #475569; }
+
+/* ─── Modal éxito ─── */
+.overlay { position: fixed; inset: 0; background: rgba(15,23,42,.6); backdrop-filter: blur(6px); display: flex; align-items: center; justify-content: center; z-index: 200; }
+.successModal { background: #fff; border-radius: 1.5rem; padding: 2.5rem 2rem; width: 100%; max-width: 340px; display: flex; flex-direction: column; align-items: center; gap: 0.75rem; text-align: center; animation: popIn 0.25s cubic-bezier(.33,1,.68,1); box-shadow: 0 24px 64px rgba(0,0,0,.2); }
+@keyframes popIn { from { transform: scale(.85); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+.successIcon { width: 72px; height: 72px; display: flex; align-items: center; justify-content: center; border-radius: 50%; background: rgba(245,158,11,.12); color: #f59e0b; }
+.successTitle { font-size: 1.25rem; font-weight: 800; color: #0f172a; margin: 0; }
+.successSub { font-size: 0.875rem; color: #64748b; margin: 0; }
+
+/* ─── Spinner ─── */
+@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+.spin { animation: spin 0.7s linear infinite; }

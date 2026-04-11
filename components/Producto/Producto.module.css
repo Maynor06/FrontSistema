@@ -655,4 +655,104 @@
   from { transform: rotate(0deg); }
   to   { transform: rotate(360deg); }
 }
-.spin { animation: spin 0.7s linear infinite; }
+.spin { animation: spin 1s linear infinite; }
+
+/* ─── VARIACIONES UI ─── */
+.divider {
+    height: 1px;
+    background: #e2e8f0;
+    margin: 1.5rem 0;
+}
+.variationToggle {
+    background: #f8fafc;
+    border: 1px solid #cbd5e1;
+    border-radius: 0.5rem;
+    padding: 1rem;
+    margin-bottom: 1rem;
+}
+.switchLabel {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    cursor: pointer;
+    font-size: 0.9rem;
+    color: #334155;
+    user-select: none;
+}
+.switchLabel input {
+    width: 1.2rem;
+    height: 1.2rem;
+    cursor: pointer;
+    accent-color: #f59e0b;
+}
+.sectionTitle {
+    font-size: 1rem;
+    font-weight: 700;
+    color: #0f172a;
+    margin: 0 0 0.5rem 0;
+}
+.infoText {
+    font-size: 0.8rem;
+    color: #64748b;
+    margin: 0 0 1rem 0;
+}
+.variacionCard {
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 0.5rem;
+    padding: 1rem;
+    margin-bottom: 1rem;
+    position: relative;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+}
+.variacionHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px dashed #e2e8f0;
+    padding-bottom: 0.75rem;
+    margin-bottom: 1rem;
+}
+.variacionHeader h4 {
+    margin: 0;
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: #f59e0b;
+}
+.btnRemoveVar {
+    background: #fee2e2;
+    color: #ef4444;
+    border: none;
+    border-radius: 0.25rem;
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: 0.2s;
+}
+.btnRemoveVar:hover {
+    background: #fecaca;
+    color: #dc2626;
+}
+.btnAddVar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    width: 100%;
+    padding: 0.8rem;
+    background: #fffbeb;
+    color: #d97706;
+    border: 1px dashed #fcd34d;
+    border-radius: 0.5rem;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: 0.2s;
+}
+.btnAddVar:hover {
+    background: #fef3c7;
+    border-color: #f59e0b;
+}

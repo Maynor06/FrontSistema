@@ -11,26 +11,30 @@ import { getUsuario } from "@/lib/auth";
 import styles from "./Producto.module.css";
 
 /* ─── Helpers ─── */
-const fmt = (n) =>
-    n != null ? `Q${Number(n).toFixed(2)}` : "—";
+const fmt = (n) => n != null ? `Q${Number(n).toFixed(2)}` : "—";
 
+// 2. Retornamos el objeto completo
 const EMPTY_FORM = {
+    // Paso A: Datos Generales
     nombre: "",
     descripcion: "",
-    slug: "",
-    precioNormal: "",
+    categoriaId: "",
+    fotoPrincipal: "",
+    fotos: "",
+    esVariacion: false,
+
+    // PRECIOS
     precio: "",
     precioCompra: "",
+    precioNormal: "",
     precioConDescuento: "",
-    fotoPrincipal: "",
-    parentId: "",
-    variacionNombre: "",
-    valorVariacion: "",
     unidadesCaja: "",
-    categoriaId: "",
-    fotos: "", // URLs separadas por coma
+
     stockInicial: "",
+    variaciones: [],
 };
+;
+
 
 /* ─── Card de producto ─── */
 function ProductoCard({ producto, onEdit, onDelete }) {
@@ -132,19 +136,20 @@ function ProductoModal({ open, onClose, onSaved, initial, usuario }) {
             setForm({
                 nombre: initial.nombre ?? "",
                 descripcion: initial.descripcion ?? "",
-                slug: initial.slug ?? "",
-                precioNormal: initial.precioNormal ?? "",
+                categoriaId: initial.categoriaId ?? "",
+                fotoPrincipal: initial.fotoPrincipal ?? "",
+                fotos: Array.isArray(initial.fotos) ? initial.fotos.join(", ") : (initial.fotos ?? ""),
+
+                esVariacion: initial.esVariacion || false,
+
                 precio: initial.precio ?? "",
                 precioCompra: initial.precioCompra ?? "",
+                precioNormal: initial.precioNormal ?? "",
                 precioConDescuento: initial.precioConDescuento ?? "",
-                fotoPrincipal: initial.fotoPrincipal ?? "",
-                parentId: initial.parentId ?? "",
-                variacionNombre: initial.variacionNombre ?? "",
-                valorVariacion: initial.valorVariacion ?? "",
                 unidadesCaja: initial.unidadesCaja ?? "",
-                categoriaId: initial.categoriaId ?? "",
-                fotos: Array.isArray(initial.fotos) ? initial.fotos.join(", ") : (initial.fotos ?? ""),
                 stockInicial: initial.stockInicial ?? "",
+
+                variaciones: initial.variaciones ?? [],
             });
         } else {
             setForm(EMPTY_FORM);
@@ -156,48 +161,106 @@ function ProductoModal({ open, onClose, onSaved, initial, usuario }) {
         setForm((prev) => ({ ...prev, [name]: type === "checkbox" ? checked : value }));
     };
 
+    const handleAddVariacion = () => {
+        setForm(prev => ({
+            ...prev,
+            variaciones: [
+                ...prev.variaciones,
+                {
+                    idTemp: Date.now().toString(),
+                    variacionNombre: "",
+                    valorVariacion: "",
+                    stockInicial: "",
+                    fotoPrincipal: "",
+                }
+            ]
+        }));
+    };
+
+    const handleVariacionChange = (idTemp, field, value) => {
+        setForm(prev => ({
+            ...prev,
+            variaciones: prev.variaciones.map(v =>
+                v.idTemp === idTemp ? { ...v, [field]: value } : v
+            )
+        }));
+    };
+
+    const handleRemoveVariacion = (idTemp) => {
+        setForm(prev => ({
+            ...prev,
+            variaciones: prev.variaciones.filter(v => v.idTemp !== idTemp)
+        }));
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         setError("");
 
-        // Validaciones mínimas
+        // Validaciones Paso A
         if (!form.nombre.trim()) { setError("El nombre es requerido."); return; }
-        if (form.precio === "" || isNaN(Number(form.precio))) { setError("El precio es requerido y debe ser un número."); return; }
-        if (form.precioCompra === "" || isNaN(Number(form.precioCompra))) { setError("El precio de compra es requerido y debe ser un número."); return; }
         if (!form.categoriaId.trim()) { setError("La categoría ID es requerida."); return; }
+
+        if (form.esVariacion && form.variaciones.length === 0) {
+            setError("Debes agregar al menos una variación si indicas que el producto tiene variaciones.");
+            return;
+        }
+
+        const estId = usuario?.establecimiento?.id ?? usuario?.establecimientoId ?? "";
+        if (!estId) { setError("No se detectó el establecimiento del usuario."); return; }
+
+        if (form.precio === "" || isNaN(Number(form.precio))) { setError("El precio es requerido."); return; }
+        if (form.precioCompra === "" || isNaN(Number(form.precioCompra))) { setError("El precio de compra es requerido."); return; }
 
         // Construir payload
         const payload = {
             nombre: form.nombre.trim(),
+            categoriaId: form.categoriaId.trim(),
+            activo: true,
+            usuarioId: usuario?.id ?? usuario?.usuarioId ?? "",
+            establecimientoId: estId,
+            esVariacion: form.esVariacion,
             precio: Number(form.precio),
             precioCompra: Number(form.precioCompra),
-            categoriaId: form.categoriaId.trim(),
-            // Siempre activo por defecto al crear
-            activo: true,
-            // El establecimiento e usuario vienen del usuario logueado
-            establecimientoId: usuario?.establecimiento?.id ?? usuario?.establecimientoId ?? "",
-            usuarioId: usuario?.id ?? usuario?.usuarioId ?? "",
         };
 
-        // Opcionales
         if (form.descripcion.trim()) payload.descripcion = form.descripcion.trim();
-        if (form.slug.trim()) payload.slug = form.slug.trim();
+        if (form.fotoPrincipal.trim()) payload.fotoPrincipal = form.fotoPrincipal.trim();
+        if (form.fotos.trim()) payload.fotos = form.fotos.split(",").map((u) => u.trim()).filter(Boolean);
+
         if (form.precioNormal !== "") payload.precioNormal = Number(form.precioNormal);
         if (form.precioConDescuento !== "") payload.precioConDescuento = Number(form.precioConDescuento);
-        if (form.fotoPrincipal.trim()) payload.fotoPrincipal = form.fotoPrincipal.trim();
-        if (form.parentId !== "") payload.parentId = Number(form.parentId);
-        if (form.variacionNombre.trim()) payload.variacionNombre = form.variacionNombre.trim();
-        if (form.valorVariacion.trim()) payload.valorVariacion = form.valorVariacion.trim();
         if (form.unidadesCaja !== "") payload.unidadesCaja = Number(form.unidadesCaja);
-        if (form.stockInicial !== "") payload.stockInicial = Number(form.stockInicial);
-        if (form.fotos.trim()) {
-            payload.fotos = form.fotos.split(",").map((u) => u.trim()).filter(Boolean);
+
+        if (!form.esVariacion) {
+            // Producto SIN variaciones
+            payload.establecimientoId = estId;
+            if (form.stockInicial !== "") payload.stockInicial = Number(form.stockInicial);
+        } else {
+            // Producto CON variaciones
+            const varList = [];
+            for (let i = 0; i < form.variaciones.length; i++) {
+                const v = form.variaciones[i];
+                if (!v.variacionNombre.trim() || !v.valorVariacion.trim()) {
+                    setError(`La variación #${i + 1} debe tener Tipo (Ej. Color) y Valor (Ej. Rojo).`);
+                    return;
+                }
+
+                varList.push({
+                    variacionNombre: v.variacionNombre.trim(),
+                    valorVariacion: v.valorVariacion.trim(),
+                    stockInicial: v.stockInicial !== "" ? Number(v.stockInicial) : 0,
+                    fotoPrincipal: v.fotoPrincipal.trim() || undefined
+                });
+            }
+            payload.variaciones = varList;
         }
 
         setLoading(true);
         try {
             let saved;
             if (isEdit) {
+                // TODO: Verificar endpoint PATCH para variaciones si aplica
                 saved = await Api.patch(`/products/${initial.id}`, payload);
             } else {
                 saved = await Api.post("/products", payload);
@@ -249,23 +312,6 @@ function ProductoModal({ open, onClose, onSaved, initial, usuario }) {
                         />
                     </Field>
 
-                    <div className={styles.row2}>
-                        <Field label="Precio de venta *" htmlFor="prod-precio">
-                            <input
-                                id="prod-precio" name="precio" type="number" step="0.01" min="0"
-                                className={styles.input} placeholder="0.00"
-                                value={form.precio} onChange={handleChange}
-                            />
-                        </Field>
-                        <Field label="Precio de compra *" htmlFor="prod-precioCompra">
-                            <input
-                                id="prod-precioCompra" name="precioCompra" type="number" step="0.01" min="0"
-                                className={styles.input} placeholder="0.00"
-                                value={form.precioCompra} onChange={handleChange}
-                            />
-                        </Field>
-                    </div>
-
                     <Field label="Categoría ID *" htmlFor="prod-categoriaId">
                         <input
                             id="prod-categoriaId" name="categoriaId" type="text"
@@ -286,80 +332,138 @@ function ProductoModal({ open, onClose, onSaved, initial, usuario }) {
                         </div>
                     </Field>
 
-                    {/* ── Avanzado (colapsable) ── */}
-                    <button
-                        type="button"
-                        id="btn-prod-advanced"
-                        className={styles.advancedToggle}
-                        onClick={() => setShowAdvanced((v) => !v)}
-                    >
-                        <ChevronDown
-                            size={16}
-                            strokeWidth={2}
-                            className={showAdvanced ? styles.chevronOpen : styles.chevronClosed}
-                        />
-                        {showAdvanced ? "Ocultar opciones avanzadas" : "Mostrar opciones avanzadas"}
-                    </button>
+                    <Field label="URLs de fotos adicionales (separadas por coma)" htmlFor="prod-fotos">
+                        <textarea id="prod-fotos" name="fotos"
+                            className={styles.textarea}
+                            placeholder="https://img1.com/a.jpg, https://img2.com/b.jpg"
+                            value={form.fotos} onChange={handleChange} rows={2} />
+                    </Field>
 
-                    {showAdvanced && (
+                    <div className={styles.row2}>
+                        <Field label="Precio de venta *" htmlFor="prod-precio">
+                            <input
+                                id="prod-precio" name="precio" type="number" step="0.01" min="0"
+                                className={styles.input} placeholder="0.00"
+                                value={form.precio} onChange={handleChange}
+                            />
+                        </Field>
+                        <Field label="Precio de compra *" htmlFor="prod-precioCompra">
+                            <input
+                                id="prod-precioCompra" name="precioCompra" type="number" step="0.01" min="0"
+                                className={styles.input} placeholder="0.00"
+                                value={form.precioCompra} onChange={handleChange}
+                            />
+                        </Field>
+                    </div>
+
+                    <div className={styles.row2}>
+                        <Field label="Precio normal" htmlFor="prod-precioNormal">
+                            <input id="prod-precioNormal" name="precioNormal" type="number" step="0.01" min="0"
+                                className={styles.input} placeholder="0.00"
+                                value={form.precioNormal} onChange={handleChange} />
+                        </Field>
+                        <Field label="Precio con descuento" htmlFor="prod-precioConDescuento">
+                            <input id="prod-precioConDescuento" name="precioConDescuento" type="number" step="0.01" min="0"
+                                className={styles.input} placeholder="0.00"
+                                value={form.precioConDescuento} onChange={handleChange} />
+                        </Field>
+                    </div>
+
+                    <div className={styles.row2}>
+                        <Field label="Unidades por caja" htmlFor="prod-unidadesCaja">
+                            <input id="prod-unidadesCaja" name="unidadesCaja" type="number" min="0"
+                                className={styles.input} placeholder="0"
+                                value={form.unidadesCaja} onChange={handleChange} />
+                        </Field>
+                    </div>
+
+                    <div className={styles.divider}></div>
+
+                    <div className={styles.variationToggle}>
+                        <label className={styles.switchLabel}>
+                            <input
+                                type="checkbox"
+                                name="esVariacion"
+                                checked={form.esVariacion}
+                                onChange={handleChange}
+                            />
+                            <strong>¿Este producto tiene variaciones?</strong> (Talla, Color, Sabor, etc.)
+                        </label>
+                    </div>
+
+                    {!form.esVariacion ? (
+                        /* =========================================
+                           PASO B: SIN VARIACIONES (PRODUCTO ÚNICO)
+                           ========================================= */
                         <div className={styles.advancedSection}>
+                            <h3 className={styles.sectionTitle}>Stock</h3>
                             <div className={styles.row2}>
-                                <Field label="Precio normal" htmlFor="prod-precioNormal">
-                                    <input id="prod-precioNormal" name="precioNormal" type="number" step="0.01" min="0"
-                                        className={styles.input} placeholder="0.00"
-                                        value={form.precioNormal} onChange={handleChange} />
-                                </Field>
-                                <Field label="Precio con descuento" htmlFor="prod-precioConDescuento">
-                                    <input id="prod-precioConDescuento" name="precioConDescuento" type="number" step="0.01" min="0"
-                                        className={styles.input} placeholder="0.00"
-                                        value={form.precioConDescuento} onChange={handleChange} />
-                                </Field>
-                            </div>
-
-                            <Field label="Slug (URL amigable)" htmlFor="prod-slug">
-                                <input id="prod-slug" name="slug" type="text"
-                                    className={styles.input} placeholder="arroz-diana-5lb"
-                                    value={form.slug} onChange={handleChange} />
-                            </Field>
-
-                            <div className={styles.row2}>
-                                <Field label="Nombre variación" htmlFor="prod-variacionNombre">
-                                    <input id="prod-variacionNombre" name="variacionNombre" type="text"
-                                        className={styles.input} placeholder="Ej. Tamaño"
-                                        value={form.variacionNombre} onChange={handleChange} />
-                                </Field>
-                                <Field label="Valor variación" htmlFor="prod-valorVariacion">
-                                    <input id="prod-valorVariacion" name="valorVariacion" type="text"
-                                        className={styles.input} placeholder="Ej. Grande"
-                                        value={form.valorVariacion} onChange={handleChange} />
-                                </Field>
-                            </div>
-
-                            <div className={styles.row2}>
-                                <Field label="Unidades por caja" htmlFor="prod-unidadesCaja">
-                                    <input id="prod-unidadesCaja" name="unidadesCaja" type="number" min="0"
-                                        className={styles.input} placeholder="0"
-                                        value={form.unidadesCaja} onChange={handleChange} />
-                                </Field>
                                 <Field label="Stock inicial" htmlFor="prod-stockInicial">
                                     <input id="prod-stockInicial" name="stockInicial" type="number" min="0"
                                         className={styles.input} placeholder="0"
                                         value={form.stockInicial} onChange={handleChange} />
                                 </Field>
                             </div>
+                        </div>
+                    ) : (
+                        /* =========================================
+                           PASO B: CON VARIACIONES (PRODUCTO PADRE + HIJOS)
+                           ========================================= */
+                        <div className={styles.advancedSection}>
+                            <h3 className={styles.sectionTitle}>Variaciones del Producto</h3>
+                            <p className={styles.infoText}>Agrega todas las combinaciones que tengas disponibles.</p>
 
-                            <Field label="Parent ID" htmlFor="prod-parentId">
-                                <input id="prod-parentId" name="parentId" type="number" min="0"
-                                    className={styles.input} placeholder="ID del producto padre (variaciones)"
-                                    value={form.parentId} onChange={handleChange} />
-                            </Field>
+                            {form.variaciones.map((variacion, index) => (
+                                <div key={variacion.idTemp} className={styles.variacionCard}>
+                                    <div className={styles.variacionHeader}>
+                                        <h4>Variación #{index + 1}</h4>
+                                        <button
+                                            type="button"
+                                            onClick={() => handleRemoveVariacion(variacion.idTemp)}
+                                            className={styles.btnRemoveVar}
+                                        >
+                                            <Trash2 size={16} />
+                                        </button>
+                                    </div>
+                                    <div className={styles.row2}>
+                                        <Field label="Tipo (Ej. Talla, Color) *">
+                                            <input
+                                                type="text" className={styles.input}
+                                                value={variacion.variacionNombre}
+                                                onChange={e => handleVariacionChange(variacion.idTemp, 'variacionNombre', e.target.value)}
+                                            />
+                                        </Field>
+                                        <Field label="Valor (Ej. S, Rojo) *">
+                                            <input
+                                                type="text" className={styles.input}
+                                                value={variacion.valorVariacion}
+                                                onChange={e => handleVariacionChange(variacion.idTemp, 'valorVariacion', e.target.value)}
+                                            />
+                                        </Field>
+                                    </div>
+                                    <div className={styles.row2}>
+                                        <Field label="URL Foto Principal (opcional)">
+                                            <input
+                                                type="url" className={styles.input}
+                                                placeholder="https://..."
+                                                value={variacion.fotoPrincipal}
+                                                onChange={e => handleVariacionChange(variacion.idTemp, 'fotoPrincipal', e.target.value)}
+                                            />
+                                        </Field>
+                                        <Field label="Stock Inicial">
+                                            <input
+                                                type="number" className={styles.input}
+                                                value={variacion.stockInicial}
+                                                onChange={e => handleVariacionChange(variacion.idTemp, 'stockInicial', e.target.value)}
+                                            />
+                                        </Field>
+                                    </div>
+                                </div>
+                            ))}
 
-                            <Field label="URLs de fotos adicionales (separadas por coma)" htmlFor="prod-fotos">
-                                <textarea id="prod-fotos" name="fotos"
-                                    className={styles.textarea}
-                                    placeholder="https://img1.com/a.jpg, https://img2.com/b.jpg"
-                                    value={form.fotos} onChange={handleChange} rows={2} />
-                            </Field>
+                            <button type="button" onClick={handleAddVariacion} className={styles.btnAddVar}>
+                                <Plus size={16} /> Agregar Combinación
+                            </button>
                         </div>
                     )}
 

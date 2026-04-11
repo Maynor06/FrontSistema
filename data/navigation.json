@@ -24,9 +24,45 @@
     "href": "/dashboard/ventas"
   },
   {
+    "id": "compras",
+    "label": "Compras",
+    "icon": "ShoppingBag",
+    "href": "/dashboard/compras"
+  },
+  {
+    "id": "gastos",
+    "label": "Gastos",
+    "icon": "Receipt",
+    "href": "/dashboard/gastos"
+  },
+  {
+    "id": "inventario",
+    "label": "Inventario",
+    "icon": "Boxes",
+    "href": "/dashboard/inventario"
+  },
+  {
     "id": "usuarios",
     "label": "Usuarios",
     "icon": "Users",
     "href": "/dashboard/usuarios"
+  },
+  {
+    "id": "proveedores",
+    "label": "Proveedores",
+    "icon": "Truck",
+    "href": "/dashboard/proveedores"
+  },
+  {
+    "id": "gasto-categorias",
+    "label": "Gasto Categorías",
+    "icon": "Layers",
+    "href": "/dashboard/gasto-categorias"
+  },
+  {
+    "id": "reportes",
+    "label": "Reportes",
+    "icon": "BarChart3",
+    "href": "/dashboard/reportes"
   }
 ]

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Store, Package, ShoppingCart, LogOut, ShoppingBag, LayoutList, Users } from "lucide-react";
+import { Store, Package, ShoppingCart, LogOut, ShoppingBag, LayoutList, Users, Boxes, Receipt, Truck, Layers, BarChart3 } from "lucide-react";
 import { clearSession, getUsuario } from "@/lib/auth";
 import navItems from "@/data/navigation.json";
 import styles from "./Sidebar.module.css";
@@ -12,8 +12,14 @@ const ICONS = {
   Store,
   Package,
   ShoppingCart,
+  ShoppingBag,
   LayoutList,
   Users,
+  Boxes,
+  Receipt,
+  Truck,
+  Layers,
+  BarChart3,
 };
 
 export default function Sidebar() {
