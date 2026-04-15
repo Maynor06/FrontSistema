@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { Store, Package, ShoppingCart, LogOut, ShoppingBag, LayoutList, Users, Boxes, Receipt, Truck, Layers, BarChart3 } from "lucide-react";
@@ -25,7 +26,13 @@ const ICONS = {
 export default function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
-  const usuario = getUsuario();
+  const [usuario, setUsuario] = useState(null);
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+    setUsuario(getUsuario());
+  }, []);
 
   const handleLogout = () => {
     clearSession();

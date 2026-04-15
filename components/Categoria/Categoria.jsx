@@ -6,6 +6,7 @@ import {
     AlertCircle, Loader2, ChevronRight, FolderOpen, Folder,
 } from "lucide-react";
 import Api from "@/lib/api";
+import { useCategories } from "@/hooks/useMaestros";
 import styles from "./Categoria.module.css";
 
 /* ─── Estado vacío del formulario ─── */
@@ -301,9 +302,7 @@ function DeleteConfirmModal({ open, onClose, onConfirm, cat, loading }) {
 
 /* ─── Componente principal ─── */
 export const Categoria = () => {
-    const [list, setList] = useState([]);
-    const [fetchLoading, setFetchLoading] = useState(true);
-    const [fetchError, setFetchError] = useState("");
+    const { categories: list, isLoading: fetchLoading, isError: fetchError, mutate } = useCategories();
 
     const [modalOpen, setModalOpen] = useState(false);
     const [editTarget, setEditTarget] = useState(null);
@@ -318,33 +317,15 @@ export const Categoria = () => {
     const [searchLoading, setSearchLoading] = useState(false);
     const [searchError, setSearchError] = useState("");
 
-    /* ── Carga inicial ── */
-    const loadAll = useCallback(async () => {
-        setFetchLoading(true);
-        setFetchError("");
-        try {
-            const data = await Api.get("/categoria");
-            setList(Array.isArray(data) ? data : []);
-        } catch (err) {
-            setFetchError(err.message || "No se pudo cargar la lista.");
-        } finally {
-            setFetchLoading(false);
-        }
-    }, []);
-
-    useEffect(() => { loadAll(); }, [loadAll]);
+    /* ── Carga inicial (SWR) ── */
+    const loadAll = () => mutate();
 
     /* ── Handlers modal ── */
     const openCreate = () => { setEditTarget(null); setModalOpen(true); };
     const openEdit = (cat) => { setEditTarget(cat); setModalOpen(true); };
 
-    const handleSaved = (saved, isEdit) => {
-        if (isEdit) {
-            setList((prev) => prev.map((c) => (c.id === saved.id ? saved : c)));
-            if (searchResult?.id === saved.id) setSearchResult(saved);
-        } else {
-            setList((prev) => [saved, ...prev]);
-        }
+    const handleSaved = () => {
+        mutate();
     };
 
     /* ── Handlers eliminar ── */
@@ -354,7 +335,7 @@ export const Categoria = () => {
         setDeleteLoading(true);
         try {
             await Api.delete(`/categoria/${deleteTarget.id}`);
-            setList((prev) => prev.filter((c) => c.id !== deleteTarget.id));
+            mutate();
             if (searchResult?.id === deleteTarget.id) setSearchResult(null);
             setDeleteOpen(false);
             setDeleteTarget(null);

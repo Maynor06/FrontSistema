@@ -8,6 +8,8 @@ import {
 } from "lucide-react";
 import Api from "@/lib/api";
 import { getUsuario } from "@/lib/auth";
+import { useProducts } from "@/hooks/useProducts";
+import { useProveedores } from "@/hooks/useMaestros";
 import styles from "./Compra.module.css";
 
 /* ══════════════════════════════════════════════
@@ -142,11 +144,9 @@ export const Compra = () => {
         usuario?.establecimientoId ?? usuario?.establecimiento?.id ?? ""
     );
 
-    /* ── Maestros ── */
-    const [productos, setProductos] = useState([]);
-    const [prodLoading, setProdLoading] = useState(true);
-    const [proveedores, setProveedores] = useState([]);
-    const [provLoading, setProvLoading] = useState(true);
+    /* ── Maestros (SWR) ── */
+    const { products: productos, isLoading: prodLoading } = useProducts();
+    const { proveedores, isLoading: provLoading } = useProveedores();
 
     /* ── Búsqueda de productos ── */
     const [busqueda, setBusqueda] = useState("");
@@ -176,16 +176,9 @@ export const Compra = () => {
     const [mobileTab, setMobileTab] = useState("nueva");
 
     /* ────────────────── Carga ────────────────── */
-    const loadMaestros = useCallback(async () => {
-        const [prods, provs] = await Promise.allSettled([
-            Api.get("/products"),
-            Api.get("/proveedor"),
-        ]);
-        if (prods.status === "fulfilled") setProductos(Array.isArray(prods.value) ? prods.value : []);
-        if (provs.status === "fulfilled") setProveedores(Array.isArray(provs.value) ? provs.value : []);
-        setProdLoading(false);
-        setProvLoading(false);
-    }, []);
+    const loadMaestros = () => {
+        // Ahora manejado por SWR
+    };
 
     const loadCompras = useCallback(async () => {
         setHistLoading(true);
@@ -201,9 +194,8 @@ export const Compra = () => {
     }, []);
 
     useEffect(() => {
-        loadMaestros();
         loadCompras();
-    }, [loadMaestros, loadCompras]);
+    }, [loadCompras]);
 
     /* ── Autocomplete ── */
     useEffect(() => {

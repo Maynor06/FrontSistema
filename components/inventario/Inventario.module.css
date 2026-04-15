@@ -281,3 +281,241 @@
     to   { transform: rotate(360deg); }
 }
 .spin { animation: spin 0.7s linear infinite; }
+
+/* ─── Tabs ─── */
+.tabsContainer {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 1.25rem;
+    background: #f1f5f9;
+    padding: 0.3rem;
+    border-radius: 0.75rem;
+    width: fit-content;
+}
+
+.tabBtn {
+    padding: 0.5rem 1rem;
+    border: none;
+    background: transparent;
+    border-radius: 0.5rem;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #64748b;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: inherit;
+}
+
+.tabBtn:hover {
+    color: #0f172a;
+}
+
+.tabActive {
+    background: #fff;
+    color: #6366f1;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+/* ─── Movimientos ─── */
+.movimientosContainer {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+}
+
+.movimientosGrid {
+    display: grid;
+    grid-template-columns: 1fr 340px;
+    gap: 1.25rem;
+    align-items: start;
+}
+
+@media (max-width: 768px) {
+    .movimientosGrid {
+        grid-template-columns: 1fr;
+    }
+}
+
+.panelPrincipal, .panelLateral {
+    background: #fff;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 0.875rem;
+    padding: 1.25rem;
+}
+
+.panelTitle {
+    font-size: 1.1rem;
+    font-weight: 700;
+    margin: 0 0 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: #0f172a;
+}
+
+.searchRow {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+.inputForm {
+    width: 100%;
+    padding: 0.6rem 0.8rem;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 0.6rem;
+    font-size: 0.85rem;
+    outline: none;
+    font-family: inherit;
+    transition: border-color 0.2s;
+}
+
+.inputForm:focus {
+    border-color: #6366f1;
+}
+
+.btnPrimary {
+    background: #6366f1;
+    color: #fff;
+    border: none;
+    border-radius: 0.6rem;
+    padding: 0.6rem 1.2rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: inherit;
+}
+
+.btnPrimary:hover {
+    background: #4f46e5;
+}
+
+.btnPrimary:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.btnPrimaryFull {
+    width: 100%;
+    background: #6366f1;
+    color: #fff;
+    border: none;
+    border-radius: 0.6rem;
+    padding: 0.7rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    font-family: inherit;
+    margin-top: 1rem;
+}
+
+.btnPrimaryFull:hover { background: #4f46e5; }
+.btnPrimaryFull:disabled { opacity: 0.6; cursor: not-allowed; }
+
+.errorAlert {
+    background: #fef2f2;
+    color: #ef4444;
+    padding: 0.75rem;
+    border-radius: 0.5rem;
+    font-size: 0.8rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+.successAlert {
+    background: #f0fdf4;
+    color: #16a34a;
+    padding: 0.75rem;
+    border-radius: 0.5rem;
+    font-size: 0.8rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+.movimientosList {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    max-height: 500px;
+    overflow-y: auto;
+}
+
+.emptyTextWrapper {
+    text-align: center;
+    color: #64748b;
+    font-size: 0.9rem;
+    padding: 2rem 0;
+}
+
+.movCard {
+    border: 1px solid #e2e8f0;
+    border-radius: 0.6rem;
+    padding: 0.8rem;
+    background: #f8fafc;
+}
+
+.movHeader {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.75rem;
+    color: #64748b;
+    margin-bottom: 0.5rem;
+}
+
+.movType {
+    font-weight: 700;
+    color: #0f172a;
+}
+
+.movBody {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+.movPositivo { color: #16a34a; }
+.movNegativo { color: #ef4444; }
+
+.movFooter {
+    margin-top: 0.5rem;
+    font-size: 0.75rem;
+    color: #64748b;
+    border-top: 1px solid #e2e8f0;
+    padding-top: 0.5rem;
+}
+
+.ajusteForm {
+    display: flex;
+    flex-direction: column;
+    gap: 0.8rem;
+}
+
+.formGroup {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+}
+
+.formGroup label {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #475569;
+}
+
+.formRow {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.8rem;
+}

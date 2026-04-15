@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import Api from "@/lib/api";
 import { getUsuario } from "@/lib/auth";
+import { useGastoCategories } from "@/hooks/useMaestros";
 import styles from "./Gasto.module.css";
 
 /* ══════════════════════════════════════════════
@@ -102,13 +103,7 @@ export const Gasto = () => {
     const [mobileTab, setMobileTab] = useState("nuevo");
 
     /* ────────────────── Carga ────────────────── */
-    const loadCategorias = useCallback(async () => {
-        try {
-            const data = await Api.get("/gasto-categoria");
-            setCategorias(Array.isArray(data) ? data : []);
-        } catch (_) { /* silencioso */ }
-        finally { setCatLoading(false); }
-    }, []);
+    const loadCategorias = () => mutateCats();
 
     const loadGastosHoy = useCallback(async () => {
         setHistLoading(true);
@@ -124,9 +119,8 @@ export const Gasto = () => {
     }, []);
 
     useEffect(() => {
-        loadCategorias();
         loadGastosHoy();
-    }, [loadCategorias, loadGastosHoy]);
+    }, [loadGastosHoy]);
 
     /* ────────────────── Handlers ─────────────── */
     const handleChange = (e) =>

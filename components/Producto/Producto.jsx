@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import {
     Package, Plus, Search, Pencil, Trash2, X,
     Tag, DollarSign, AlertCircle, Loader2,
@@ -8,6 +8,8 @@ import {
 } from "lucide-react";
 import Api from "@/lib/api";
 import { getUsuario } from "@/lib/auth";
+import { useProducts } from "@/hooks/useProducts";
+import { useCategories } from "@/hooks/useMaestros";
 import styles from "./Producto.module.css";
 
 /* ─── Helpers ─── */
@@ -29,8 +31,12 @@ const EMPTY_FORM = {
     precioNormal: "",
     precioConDescuento: "",
     unidadesCaja: "",
+    precioCaja: "",
 
     stockInicial: "",
+    parentId: "",
+    variacionNombre: "",
+    valorVariacion: "",
     variaciones: [],
 };
 ;
@@ -126,6 +132,7 @@ function ProductoModal({ open, onClose, onSaved, initial, usuario }) {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
     const [showAdvanced, setShowAdvanced] = useState(false);
+    const { categories, isLoading: catLoading } = useCategories();
 
     /* Pre-llenado */
     useEffect(() => {
@@ -147,7 +154,11 @@ function ProductoModal({ open, onClose, onSaved, initial, usuario }) {
                 precioNormal: initial.precioNormal ?? "",
                 precioConDescuento: initial.precioConDescuento ?? "",
                 unidadesCaja: initial.unidadesCaja ?? "",
+                precioCaja: initial.precioCaja ?? "",
                 stockInicial: initial.stockInicial ?? "",
+                parentId: initial.parentId ?? "",
+                variacionNombre: initial.variacionNombre ?? "",
+                valorVariacion: initial.valorVariacion ?? "",
 
                 variaciones: initial.variaciones ?? [],
             });
@@ -209,8 +220,10 @@ function ProductoModal({ open, onClose, onSaved, initial, usuario }) {
         const estId = usuario?.establecimiento?.id ?? usuario?.establecimientoId ?? "";
         if (!estId) { setError("No se detectó el establecimiento del usuario."); return; }
 
-        if (form.precio === "" || isNaN(Number(form.precio))) { setError("El precio es requerido."); return; }
-        if (form.precioCompra === "" || isNaN(Number(form.precioCompra))) { setError("El precio de compra es requerido."); return; }
+        if (!form.esVariacion && !form.parentId) {
+            if (form.precio === "" || isNaN(Number(form.precio))) { setError("El precio es requerido."); return; }
+            if (form.precioCompra === "" || isNaN(Number(form.precioCompra))) { setError("El precio de compra es requerido."); return; }
+        }
 
         // Construir payload
         const payload = {
@@ -220,9 +233,10 @@ function ProductoModal({ open, onClose, onSaved, initial, usuario }) {
             usuarioId: usuario?.id ?? usuario?.usuarioId ?? "",
             establecimientoId: estId,
             esVariacion: form.esVariacion,
-            precio: Number(form.precio),
-            precioCompra: Number(form.precioCompra),
         };
+
+        if (form.precio !== "") payload.precio = Number(form.precio);
+        if (form.precioCompra !== "") payload.precioCompra = Number(form.precioCompra);
 
         if (form.descripcion.trim()) payload.descripcion = form.descripcion.trim();
         if (form.fotoPrincipal.trim()) payload.fotoPrincipal = form.fotoPrincipal.trim();
@@ -231,6 +245,13 @@ function ProductoModal({ open, onClose, onSaved, initial, usuario }) {
         if (form.precioNormal !== "") payload.precioNormal = Number(form.precioNormal);
         if (form.precioConDescuento !== "") payload.precioConDescuento = Number(form.precioConDescuento);
         if (form.unidadesCaja !== "") payload.unidadesCaja = Number(form.unidadesCaja);
+        if (form.precioCaja !== "") payload.precioCaja = Number(form.precioCaja);
+
+        if (form.parentId) {
+            payload.parentId = form.parentId;
+            payload.variacionNombre = form.variacionNombre;
+            payload.valorVariacion = form.valorVariacion;
+        }
 
         if (!form.esVariacion) {
             // Producto SIN variaciones
@@ -256,11 +277,17 @@ function ProductoModal({ open, onClose, onSaved, initial, usuario }) {
             payload.variaciones = varList;
         }
 
+        if (form.parentId) {
+            if (!form.variacionNombre || !form.valorVariacion) {
+                setError("La variación y su valor son requeridos si se especifica un producto padre.");
+                return;
+            }
+        }
+
         setLoading(true);
         try {
             let saved;
             if (isEdit) {
-                // TODO: Verificar endpoint PATCH para variaciones si aplica
                 saved = await Api.patch(`/products/${initial.id}`, payload);
             } else {
                 saved = await Api.post("/products", payload);
@@ -312,13 +339,51 @@ function ProductoModal({ open, onClose, onSaved, initial, usuario }) {
                         />
                     </Field>
 
-                    <Field label="Categoría ID *" htmlFor="prod-categoriaId">
+                    <Field label="Categoría *" htmlFor="prod-categoriaId">
+                        <select
+                            id="prod-categoriaId"
+                            name="categoriaId"
+                            className={styles.input}
+                            value={form.categoriaId}
+                            onChange={handleChange}
+                            disabled={catLoading}
+                        >
+                            <option value="">— Selecciona una categoría —</option>
+                            {categories.map((cat) => (
+                                <option key={cat.id} value={cat.id}>
+                                    {cat.nombre}
+                                </option>
+                            ))}
+                        </select>
+                        {catLoading && <span className={styles.loadingTextSmall}>Cargando...</span>}
+                    </Field>
+
+                    <Field label="Parent ID (Opcional)" htmlFor="prod-parentId">
                         <input
-                            id="prod-categoriaId" name="categoriaId" type="text"
-                            className={styles.input} placeholder="UUID de la categoría"
-                            value={form.categoriaId} onChange={handleChange}
+                            id="prod-parentId" name="parentId" type="text"
+                            className={styles.input} placeholder="UUID del producto padre (para variaciones)"
+                            value={form.parentId} onChange={handleChange}
                         />
                     </Field>
+
+                    {form.parentId && (
+                        <div className={styles.row2}>
+                            <Field label="Nombre Variación *" htmlFor="prod-variacionNombre">
+                                <input
+                                    id="prod-variacionNombre" name="variacionNombre" type="text"
+                                    className={styles.input} placeholder="Ej. Talla, Color"
+                                    value={form.variacionNombre} onChange={handleChange}
+                                />
+                            </Field>
+                            <Field label="Valor Variación *" htmlFor="prod-valorVariacion">
+                                <input
+                                    id="prod-valorVariacion" name="valorVariacion" type="text"
+                                    className={styles.input} placeholder="Ej. L, Rojo"
+                                    value={form.valorVariacion} onChange={handleChange}
+                                />
+                            </Field>
+                        </div>
+                    )}
 
                     <Field label="URL foto principal" htmlFor="prod-fotoPrincipal">
                         <div className={styles.inputWithIcon}>
@@ -374,6 +439,11 @@ function ProductoModal({ open, onClose, onSaved, initial, usuario }) {
                             <input id="prod-unidadesCaja" name="unidadesCaja" type="number" min="0"
                                 className={styles.input} placeholder="0"
                                 value={form.unidadesCaja} onChange={handleChange} />
+                        </Field>
+                        <Field label="Precio por caja" htmlFor="prod-precioCaja">
+                            <input id="prod-precioCaja" name="precioCaja" type="number" step="0.01" min="0"
+                                className={styles.input} placeholder="0.00"
+                                value={form.precioCaja} onChange={handleChange} />
                         </Field>
                     </div>
 
@@ -527,10 +597,7 @@ function DeleteConfirmModal({ open, onClose, onConfirm, producto, loading }) {
 /* ─── Componente principal ─── */
 const Producto = () => {
     const usuario = getUsuario();
-
-    const [list, setList] = useState([]);
-    const [fetchLoading, setFetchLoading] = useState(true);
-    const [fetchError, setFetchError] = useState("");
+    const { products: list, isLoading: fetchLoading, isError: fetchError, mutate } = useProducts();
 
     const [modalOpen, setModalOpen] = useState(false);
     const [editTarget, setEditTarget] = useState(null);
@@ -545,33 +612,17 @@ const Producto = () => {
     const [searchLoading, setSearchLoading] = useState(false);
     const [searchError, setSearchError] = useState("");
 
-    /* ── Carga inicial ── */
-    const loadAll = useCallback(async () => {
-        setFetchLoading(true);
-        setFetchError("");
-        try {
-            const data = await Api.get("/products");
-            setList(Array.isArray(data) ? data : []);
-        } catch (err) {
-            setFetchError(err.message || "No se pudo cargar la lista.");
-        } finally {
-            setFetchLoading(false);
-        }
-    }, []);
-
-    useEffect(() => { loadAll(); }, [loadAll]);
+    /* ── Carga inicial (Ahora manejada por SWR) ── */
+    const loadAll = () => mutate();
 
     /* ── Handlers modal ── */
     const openCreate = () => { setEditTarget(null); setModalOpen(true); };
     const openEdit = (p) => { setEditTarget(p); setModalOpen(true); };
 
-    const handleSaved = (saved, isEdit) => {
-        if (isEdit) {
-            setList((prev) => prev.map((p) => (p.id === saved.id ? saved : p)));
-            if (searchResult?.id === saved.id) setSearchResult(saved);
-        } else {
-            setList((prev) => [saved, ...prev]);
-        }
+    const handleSaved = () => {
+        // Al usar SWR + mutate(), simplemente disparamos una re-validación
+        // o podríamos actualizar el cache localmente para velocidad instantánea
+        mutate();
     };
 
     /* ── Handlers eliminar ── */
@@ -581,7 +632,7 @@ const Producto = () => {
         setDeleteLoading(true);
         try {
             await Api.delete(`/products/${deleteTarget.id}`);
-            setList((prev) => prev.filter((p) => p.id !== deleteTarget.id));
+            mutate(); // Re-validar lista después de eliminar
             if (searchResult?.id === deleteTarget.id) setSearchResult(null);
             setDeleteOpen(false);
             setDeleteTarget(null);

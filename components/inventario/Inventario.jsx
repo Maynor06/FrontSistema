@@ -53,10 +53,13 @@ function InventarioCard({ item }) {
     );
 }
 
+import { Movimientos } from "./Movimientos";
+
 /* ──────────────────────────────────────────────
    COMPONENTE PRINCIPAL
 ────────────────────────────────────────────── */
 export const Inventario = () => {
+    const [activeTab, setActiveTab] = useState("existencias");
     const [inventario, setInventario] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
@@ -121,23 +124,40 @@ export const Inventario = () => {
                 </button>
             </div>
 
-            {/* ── Stats rápidas ── */}
-            {!loading && !error && (
-                <div className={styles.statsRow}>
-                    <div className={styles.statCard}>
-                        <span className={styles.statNum}>{stats.total}</span>
-                        <span className={styles.statLabel}>Productos</span>
+            <div className={styles.tabsContainer}>
+                <button 
+                    className={`${styles.tabBtn} ${activeTab === 'existencias' ? styles.tabActive : ''}`}
+                    onClick={() => setActiveTab('existencias')}
+                >
+                    Existencias
+                </button>
+                <button 
+                    className={`${styles.tabBtn} ${activeTab === 'movimientos' ? styles.tabActive : ''}`}
+                    onClick={() => setActiveTab('movimientos')}
+                >
+                    Movimientos
+                </button>
+            </div>
+
+            {activeTab === 'existencias' ? (
+                <>
+                {/* ── Stats rápidas ── */}
+                {!loading && !error && (
+                    <div className={styles.statsRow}>
+                        <div className={styles.statCard}>
+                            <span className={styles.statNum}>{stats.total}</span>
+                            <span className={styles.statLabel}>Productos</span>
+                        </div>
+                        <div className={`${styles.statCard} ${stats.sinStock > 0 ? styles.statCardDanger : ""}`}>
+                            <span className={styles.statNum}>{stats.sinStock}</span>
+                            <span className={styles.statLabel}>Sin stock</span>
+                        </div>
+                        <div className={`${styles.statCard} ${stats.stockBajo > 0 ? styles.statCardWarn : ""}`}>
+                            <span className={styles.statNum}>{stats.stockBajo}</span>
+                            <span className={styles.statLabel}>Stock bajo (≤5)</span>
+                        </div>
                     </div>
-                    <div className={`${styles.statCard} ${stats.sinStock > 0 ? styles.statCardDanger : ""}`}>
-                        <span className={styles.statNum}>{stats.sinStock}</span>
-                        <span className={styles.statLabel}>Sin stock</span>
-                    </div>
-                    <div className={`${styles.statCard} ${stats.stockBajo > 0 ? styles.statCardWarn : ""}`}>
-                        <span className={styles.statNum}>{stats.stockBajo}</span>
-                        <span className={styles.statLabel}>Stock bajo (≤5)</span>
-                    </div>
-                </div>
-            )}
+                )}
 
             {/* ── Buscador ── */}
             <div className={styles.searchWrap}>
@@ -177,6 +197,10 @@ export const Inventario = () => {
                         <InventarioCard key={item.id} item={item} />
                     ))}
                 </div>
+            )}
+            </>
+            ) : (
+                <Movimientos />
             )}
         </div>
     );

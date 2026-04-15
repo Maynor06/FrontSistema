@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import Api from "@/lib/api";
 import { getUsuario } from "@/lib/auth";
+import { useProducts } from "@/hooks/useProducts";
 import styles from "./Venta.module.css";
 
 /* ══════════════════════════════════════════════════════════════
@@ -68,19 +69,23 @@ function OrdenCard({ orden }) {
 /* ══════════════════════════════════════════════════════════════
    SECCIÓN: ITEM DEL CARRITO
 ══════════════════════════════════════════════════════════════ */
-function CartItem({ item, onAdd, onRemove, onDelete, onToggleDescuento }) {
-    const subtotal = item.precioUnitario * item.cantidad;
+function CartItem({ item, onAdd, onRemove, onDelete, onToggleDescuento, onToggleCaja, onSetCantidad }) {
+    const isCaja = item.porCaja;
+    // Si es por caja, usamos el precioCaja configurado.
+    const rawPrice = isCaja ? item.precioCaja : item.precioUnitario;
+    const subtotal = rawPrice * item.cantidad;
     const tieneDescuento = item.precioConDescuento != null && Number(item.precioConDescuento) > 0;
+    const tieneCaja = item.precioCaja != null && Number(item.precioCaja) > 0 && item.unidadesCaja > 1;
 
     return (
         <div className={styles.cartItem} id={`cart-item-${item.productoId}`}>
             <div className={styles.cartItemInfo}>
                 <p className={styles.cartItemName}>{item.nombre}</p>
                 <div className={styles.cartPriceRow}>
-                    <p className={`${styles.cartItemPrice} ${item.usandoDescuento ? styles.precioTachado : ""}`}>
-                        Q {Number(item.precioOriginal).toFixed(2)}
+                    <p className={`${styles.cartItemPrice} ${item.usandoDescuento && !isCaja ? styles.precioTachado : ""}`}>
+                        {isCaja ? `Q ${Number(item.precioCaja).toFixed(2)} / caja` : `Q ${Number(item.precioOriginal).toFixed(2)}`}
                     </p>
-                    {tieneDescuento && (
+                    {tieneDescuento && !isCaja && (
                         <label className={styles.descCheckLabel} htmlFor={`chk-desc-${item.productoId}`}>
                             <input
                                 type="checkbox"
@@ -94,6 +99,20 @@ function CartItem({ item, onAdd, onRemove, onDelete, onToggleDescuento }) {
                             <span>Q {Number(item.precioConDescuento).toFixed(2)}</span>
                         </label>
                     )}
+                    {tieneCaja && (
+                        <label className={styles.cajaCheckLabel} htmlFor={`chk-caja-${item.productoId}`}>
+                            <input
+                                type="checkbox"
+                                id={`chk-caja-${item.productoId}`}
+                                checked={item.porCaja}
+                                onChange={() => onToggleCaja(item.productoId)}
+                                className={styles.descCheck}
+                            />
+                            <span className={styles.descCheckCustom} />
+                            <Package size={11} strokeWidth={2} />
+                            <span>Por Caja ({item.unidadesCaja} unid.)</span>
+                        </label>
+                    )}
                 </div>
             </div>
 
@@ -102,7 +121,13 @@ function CartItem({ item, onAdd, onRemove, onDelete, onToggleDescuento }) {
                     onClick={() => onRemove(item.productoId)} title="Quitar unidad">
                     <Minus size={13} strokeWidth={2.5} />
                 </button>
-                <span className={styles.qtyNum}>{item.cantidad}</span>
+                <input 
+                    type="number"
+                    min="1"
+                    className={styles.qtyInput}
+                    value={item.cantidad}
+                    onChange={(e) => onSetCantidad(item.productoId, e.target.value)}
+                />
                 <button id={`btn-plus-${item.productoId}`} className={`${styles.qtyBtn} ${styles.qtyBtnAdd}`}
                     onClick={() => onAdd(item.productoId)} title="Agregar unidad">
                     <Plus size={13} strokeWidth={2.5} />
@@ -155,9 +180,8 @@ export const Venta = () => {
     // Estado de la orden se obtiene del fetch, pero no se muestra al usuario
     const [estadoOrdenId, setEstadoOrdenId] = useState("");
 
-    /* ── Productos ── */
-    const [productos, setProductos] = useState([]);
-    const [prodLoading, setProdLoading] = useState(true);
+    /* ── Productos (Usando SWR para optimizar llamados) ── */
+    const { products: productos, isLoading: prodLoading, mutate: mutateProducts } = useProducts();
 
     /* ── Búsqueda ── */
     const [busqueda, setBusqueda] = useState("");
@@ -186,19 +210,10 @@ export const Venta = () => {
     ────────────────────────────────────────────── */
     const loadMaestros = useCallback(async () => {
         try {
-            const [prods, estados] = await Promise.allSettled([
-                Api.get("/products"),
-                Api.get("/estado-orden"),
-            ]);
-            if (prods.status === "fulfilled")
-                setProductos(Array.isArray(prods.value) ? prods.value : []);
-            if (estados.status === "fulfilled") {
-                const list = Array.isArray(estados.value) ? estados.value : [];
-                if (list.length > 0) setEstadoOrdenId(String(list[0].id));
-            }
-        } finally {
-            setProdLoading(false);
-        }
+            const estados = await Api.get("/estado-orden");
+            const list = Array.isArray(estados) ? estados : [];
+            if (list.length > 0) setEstadoOrdenId(String(list[0].id));
+        } catch (_) { }
     }, []);
 
     const loadOrdenesHoy = useCallback(async () => {
@@ -263,8 +278,11 @@ export const Venta = () => {
                 nombre: prod.nombre,
                 precioOriginal,
                 precioConDescuento,
-                precioUnitario: precioOriginal, // precio activo
+                precioUnitario: precioOriginal, // precio activo si no es caja
+                precioCaja: Number(prod.precioCaja) || 0,
+                unidadesCaja: Number(prod.unidadesCaja) || 1,
                 usandoDescuento: false,
+                porCaja: false,
                 cantidad: 1,
             }];
         });
@@ -281,6 +299,12 @@ export const Venta = () => {
             return prev.map(i => i.productoId === productoId ? { ...i, cantidad: i.cantidad - 1 } : i);
         });
 
+    const setCantidad = (productoId, value) => {
+        const val = parseInt(value, 10);
+        if (isNaN(val) || val < 1) return;
+        setCarrito(prev => prev.map(i => i.productoId === productoId ? { ...i, cantidad: val } : i));
+    };
+
     const eliminarDelCarrito = (productoId) =>
         setCarrito(prev => prev.filter(i => i.productoId !== productoId));
 
@@ -292,7 +316,24 @@ export const Venta = () => {
             return {
                 ...i,
                 usandoDescuento,
+                porCaja: false, // quitar caja si se activa descuento unidad
                 precioUnitario: usandoDescuento && i.precioConDescuento
+                    ? i.precioConDescuento
+                    : i.precioOriginal,
+            };
+        }));
+    };
+
+    /** Toggle por caja */
+    const toggleCaja = (productoId) => {
+        setCarrito(prev => prev.map(i => {
+            if (i.productoId !== productoId) return i;
+            const porCaja = !i.porCaja;
+            return {
+                ...i,
+                porCaja,
+                usandoDescuento: porCaja ? false : i.usandoDescuento, // quitar descuento si es caja
+                precioUnitario: i.usandoDescuento && !porCaja && i.precioConDescuento
                     ? i.precioConDescuento
                     : i.precioOriginal,
             };
@@ -304,7 +345,7 @@ export const Venta = () => {
         setConfirmError("");
     };
 
-    const total = carrito.reduce((s, i) => s + i.precioUnitario * i.cantidad, 0);
+    const total = carrito.reduce((s, i) => s + (i.porCaja ? i.precioCaja : i.precioUnitario) * i.cantidad, 0);
 
     /* ──────────────────────────────────────────────
        Confirmar orden
@@ -322,11 +363,19 @@ export const Venta = () => {
             usuarioId,
             nitFacturacion: "CF",
             nombreFacturacion: "sistema",
-            detalles: carrito.map(i => ({
-                productoId: i.productoId,
-                cantidad: i.cantidad,
-                precioUnitario: i.precioUnitario,
-            })),
+            detalles: carrito.map(i => {
+                let cantidadFinal = i.cantidad;
+                let precioUnitarioFinal = i.precioUnitario;
+                if (i.porCaja && i.unidadesCaja > 0) {
+                    cantidadFinal = i.cantidad * i.unidadesCaja;
+                    precioUnitarioFinal = i.precioCaja / i.unidadesCaja;
+                }
+                return {
+                    productoId: i.productoId,
+                    cantidad: cantidadFinal,
+                    precioUnitario: precioUnitarioFinal,
+                };
+            }),
         };
 
         setConfirmLoading(true);
@@ -335,6 +384,7 @@ export const Venta = () => {
             setSuccessModalData(orden);
             limpiarCarrito();
             loadOrdenesHoy();
+            mutateProducts(); // Actualizar productos después de la venta (stock)
         } catch (err) {
             setConfirmError(err.message || "No se pudo crear la orden.");
         } finally {
@@ -460,6 +510,8 @@ export const Venta = () => {
                                         onRemove={decrementar}
                                         onDelete={eliminarDelCarrito}
                                         onToggleDescuento={toggleDescuento}
+                                        onToggleCaja={toggleCaja}
+                                        onSetCantidad={setCantidad}
                                     />
                                 ))}
                             </div>

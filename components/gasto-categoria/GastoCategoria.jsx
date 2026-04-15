@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { Tag, Plus, Loader2, AlertCircle, RefreshCw, Layers } from "lucide-react";
 import Api from "@/lib/api";
+import { useGastoCategories } from "@/hooks/useMaestros";
 import styles from "./GastoCategoria.module.css";
 
 function CategoriaCard({ cat }) {
@@ -20,28 +21,13 @@ function CategoriaCard({ cat }) {
 }
 
 export const GastoCategoria = () => {
-    const [categorias, setCategorias] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState("");
+    const { gastoCategories: categorias, isLoading: loading, isError: error, mutate } = useGastoCategories();
 
     const [form, setForm] = useState({ nombre: "", descripcion: "" });
     const [formLoading, setFormLoading] = useState(false);
     const [formError, setFormError] = useState("");
 
-    const loadCategorias = useCallback(async () => {
-        setLoading(true);
-        setError("");
-        try {
-            const res = await Api.get("/gasto-categoria");
-            setCategorias(Array.isArray(res) ? res : []);
-        } catch (err) {
-            setError(err.message || "Error al cargar categorías");
-        } finally {
-            setLoading(false);
-        }
-    }, []);
-
-    useEffect(() => { loadCategorias(); }, [loadCategorias]);
+    const loadCategorias = () => mutate();
 
     const handleSubmit = async (e) => {
         e.preventDefault();

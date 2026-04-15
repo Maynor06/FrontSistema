@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { Truck, Plus, Loader2, AlertCircle, RefreshCw, Mail, Phone, MapPin, Hash } from "lucide-react";
 import Api from "@/lib/api";
+import { useProveedores } from "@/hooks/useMaestros";
 import styles from "./Proveedor.module.css";
 
 function ProveedorCard({ prov }) {
@@ -23,28 +24,13 @@ function ProveedorCard({ prov }) {
 }
 
 export const Proveedor = () => {
-    const [proveedores, setProveedores] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState("");
+    const { proveedores, isLoading: loading, isError: error, mutate } = useProveedores();
 
     const [form, setForm] = useState({ nombre: "", telefono: "", correo: "", direccion: "", nit: "" });
     const [formLoading, setFormLoading] = useState(false);
     const [formError, setFormError] = useState("");
 
-    const loadProveedores = useCallback(async () => {
-        setLoading(true);
-        setError("");
-        try {
-            const res = await Api.get("/proveedor");
-            setProveedores(Array.isArray(res) ? res : []);
-        } catch (err) {
-            setError(err.message || "Error al cargar proveedores");
-        } finally {
-            setLoading(false);
-        }
-    }, []);
-
-    useEffect(() => { loadProveedores(); }, [loadProveedores]);
+    const loadProveedores = () => mutate();
 
     const handleSubmit = async (e) => {
         e.preventDefault();

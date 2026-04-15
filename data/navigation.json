@@ -12,12 +12,6 @@
     "href": "/dashboard/productos"
   },
   {
-    "id": "categorias",
-    "label": "Categorías",
-    "icon": "LayoutList",
-    "href": "/dashboard/categorias"
-  },
-  {
     "id": "ventas",
     "label": "Ventas",
     "icon": "ShoppingCart",
@@ -46,18 +40,6 @@
     "label": "Usuarios",
     "icon": "Users",
     "href": "/dashboard/usuarios"
-  },
-  {
-    "id": "proveedores",
-    "label": "Proveedores",
-    "icon": "Truck",
-    "href": "/dashboard/proveedores"
-  },
-  {
-    "id": "gasto-categorias",
-    "label": "Gasto Categorías",
-    "icon": "Layers",
-    "href": "/dashboard/gasto-categorias"
   },
   {
     "id": "reportes",
