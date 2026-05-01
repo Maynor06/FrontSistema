@@ -5,7 +5,7 @@ const PROTECTED_PATHS = ["/dashboard"];
 /** Si está autenticado y entra a "/" lo redirige al dashboard */
 const AUTH_REDIRECT = "/dashboard";
 
-export function middleware(request) {
+export function middleware(request: any) {
   const { pathname } = request.nextUrl;
   const token = request.cookies.get("access_token")?.value;
 
