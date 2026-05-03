@@ -81,8 +81,7 @@ export const Gasto = () => {
     );
 
     /* ── Maestros ── */
-    const [categorias, setCategorias] = useState([]);
-    const [catLoading, setCatLoading] = useState(true);
+    const { gastoCategories: categorias, isLoading: catLoading } = useGastoCategories();
 
     /* ── Formulario ── */
     const [form, setForm] = useState({
@@ -103,7 +102,6 @@ export const Gasto = () => {
     const [mobileTab, setMobileTab] = useState("nuevo");
 
     /* ────────────────── Carga ────────────────── */
-    const loadCategorias = () => mutateCats();
 
     const loadGastosHoy = useCallback(async () => {
         setHistLoading(true);

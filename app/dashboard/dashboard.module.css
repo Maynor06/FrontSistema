@@ -13,3 +13,10 @@
   display: flex;
   flex-direction: column;
 }
+
+@media (max-width: 768px) {
+  .main {
+    margin-left: 0;
+    margin-bottom: 68px; /* altura del sidebar en móvil */
+  }
+}

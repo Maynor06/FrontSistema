@@ -4,6 +4,7 @@ import { useState, useCallback, useEffect } from "react";
 import { Search, Loader2, AlertCircle, Plus, ArrowRightLeft, CheckCircle2 } from "lucide-react";
 import Api from "@/lib/api";
 import { getUsuario } from "@/lib/auth";
+import { useProducts } from "@/hooks/useProducts";
 import styles from "./Inventario.module.css";
 
 export function Movimientos() {
@@ -11,6 +12,8 @@ export function Movimientos() {
   const [movimientos, setMovimientos] = useState([]);
   const [loadingMovimientos, setLoadingMovimientos] = useState(false);
   const [errorBusqueda, setErrorBusqueda] = useState("");
+
+  const { products: productos, isLoading: loadingProductos } = useProducts();
 
   const [productoIdAjuste, setProductoIdAjuste] = useState("");
   const [establecimientoId, setEstablecimientoId] = useState("");
@@ -104,13 +107,17 @@ export function Movimientos() {
             <Search size={18} /> Consultar Movimientos
           </h2>
           <div className={styles.searchRow}>
-            <input
-              type="text"
-              placeholder="ID del Producto..."
+            <select
               value={productoId}
               onChange={(e) => setProductoId(e.target.value)}
               className={styles.inputForm}
-            />
+              disabled={loadingProductos}
+            >
+              <option value="">Seleccionar producto...</option>
+              {productos?.map(p => (
+                <option key={p.id} value={p.id}>{p.nombre} {p.slug ? `(/${p.slug})` : ''}</option>
+              ))}
+            </select>
             <button
               className={styles.btnPrimary}
               onClick={buscarMovimientos}
@@ -169,14 +176,18 @@ export function Movimientos() {
             <div className={styles.formRow}>
               <div className={styles.formGroup}>
                 <label>ID Producto *</label>
-                <input
-                  type="text"
-                  placeholder="ID del producto..."
+                <select
                   value={productoIdAjuste}
                   onChange={(e) => setProductoIdAjuste(e.target.value)}
                   className={styles.inputForm}
+                  disabled={loadingProductos}
                   required
-                />
+                >
+                  <option value="">Seleccionar producto...</option>
+                  {productos?.map(p => (
+                    <option key={p.id} value={p.id}>{p.nombre} {p.slug ? `(/${p.slug})` : ''}</option>
+                  ))}
+                </select>
               </div>
               <div className={styles.formGroup}>
                 <label>ID Establecimiento *</label>

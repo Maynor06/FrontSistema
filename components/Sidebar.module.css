@@ -239,3 +239,93 @@
   background: rgba(239, 68, 68, 0.12);
   color: #f87171;
 }
+
+@media (max-width: 768px) {
+  .sidebar {
+    top: auto;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    width: 100%;
+    height: 68px;
+    flex-direction: row;
+    padding: 0 0.5rem;
+    align-items: center;
+    border-right: none;
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+    z-index: 1000;
+  }
+
+  .logo {
+    margin-bottom: 0;
+    margin-right: 0.5rem;
+  }
+
+  .nav {
+    flex-direction: row;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding: 0;
+    justify-content: flex-start;
+    -webkit-overflow-scrolling: touch;
+    gap: 0.25rem;
+    align-items: center;
+    height: 100%;
+  }
+
+  .nav::-webkit-scrollbar {
+    display: none;
+  }
+  .nav {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .navItem {
+    flex-shrink: 0;
+  }
+
+  .navItemActive::before {
+    left: 50%;
+    transform: translateX(-50%);
+    top: auto;
+    bottom: -0.25rem;
+    width: 28px;
+    height: 3px;
+    background: linear-gradient(90deg, #6366f1, #8b5cf6);
+    border-radius: 4px 4px 0 0;
+  }
+
+  .navItem:hover {
+    transform: scale(1.05);
+  }
+
+  .footer {
+    flex-direction: row;
+    padding-bottom: 0;
+    margin-left: auto;
+    padding-left: 0.5rem;
+    gap: 0.25rem;
+  }
+
+  .userPopover {
+    bottom: calc(100% + 14px);
+    left: auto;
+    right: 0;
+    transform: translateY(8px);
+  }
+
+  .avatarWrap:hover .userPopover {
+    transform: translateY(0);
+  }
+
+  .userPopover::before {
+    left: auto;
+    right: 14px;
+    bottom: -7px;
+    border-left: none;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    border-right: 1px solid rgba(255, 255, 255, 0.1);
+    transform: rotate(45deg);
+  }
+}

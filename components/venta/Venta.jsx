@@ -36,13 +36,19 @@ function estadoColor(nombre) {
 /* ══════════════════════════════════════════════════════════════
    SECCIÓN: CARD ORDEN DEL DÍA
 ══════════════════════════════════════════════════════════════ */
-function OrdenCard({ orden }) {
-    const total = orden.detalles?.reduce(
-        (s, d) => s + (Number(d.precioUnitario) * Number(d.cantidad)), 0
-    ) ?? Number(orden.total ?? 0);
+function OrdenCard({ orden, onClick }) {
+    const detalles = orden.detalles ?? orden.detalles_orden ?? orden.detalleOrden ?? orden.detallesOrden ?? [];
+    const total = detalles.length > 0 
+        ? detalles.reduce((s, d) => s + (Number(d.precioUnitario) * Number(d.cantidad)), 0)
+        : Number(orden.total ?? 0);
 
     return (
-        <article className={styles.ordenCard} id={`orden-card-${orden.id}`}>
+        <article 
+            className={styles.ordenCard} 
+            id={`orden-card-${orden.id}`} 
+            onClick={() => onClick && onClick(orden)}
+            style={{ cursor: onClick ? 'pointer' : 'default' }}
+        >
             <div className={styles.ordenCardHeader}>
                 <span className={styles.ordenId}>#{String(orden.id).slice(-6).toUpperCase()}</span>
                 <span className={`${styles.ordenChip} ${estadoColor(orden.estadoOrden?.nombre)}`}>
@@ -52,7 +58,7 @@ function OrdenCard({ orden }) {
             <div className={styles.ordenCardBody}>
                 <div className={styles.ordenRow}>
                     <Package size={12} strokeWidth={2} className={styles.ordenIcon} />
-                    <span>{orden.detalles?.length ?? 0} producto(s)</span>
+                    <span>{detalles.length} producto(s)</span>
                 </div>
             </div>
             <div className={styles.ordenCardFooter}>
@@ -166,6 +172,62 @@ function SuccessModal({ open, orden, onClose }) {
 }
 
 /* ══════════════════════════════════════════════════════════════
+   MODAL: DETALLES DE ORDEN
+══════════════════════════════════════════════════════════════ */
+function OrdenDetalleModal({ open, orden, onClose }) {
+    if (!open || !orden) return null;
+    const detalles = orden.detalles ?? orden.detalles_orden ?? orden.detalleOrden ?? orden.detallesOrden ?? [];
+    const total = detalles.length > 0 
+        ? detalles.reduce((s, d) => s + (Number(d.precioUnitario) * Number(d.cantidad)), 0)
+        : Number(orden.total ?? 0);
+
+    return (
+        <div className={styles.overlay} onClick={(e) => e.target === e.currentTarget && onClose()}>
+            <div className={styles.successModal} style={{ width: '400px', maxWidth: '90%', alignItems: 'stretch', textAlign: 'left', padding: '1.5rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                    <h2 style={{ fontSize: '1.25rem', fontWeight: 600, margin: 0, color: '#1e293b' }}>Detalle de Orden</h2>
+                    <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b' }}>
+                        <X size={20} strokeWidth={2} />
+                    </button>
+                </div>
+                
+                <div style={{ fontSize: '0.9rem', color: '#475569', marginBottom: '1rem', display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                    <p style={{ margin: 0 }}><strong>ID:</strong> #{String(orden.id).slice(-8).toUpperCase()}</p>
+                    <p style={{ margin: 0 }}><strong>Estado:</strong> {orden.estadoOrden?.nombre ?? "—"}</p>
+                    <p style={{ margin: 0 }}><strong>Fecha:</strong> {new Date(orden.fechaCreada ?? orden.createdAt ?? orden.fecha).toLocaleString()}</p>
+                </div>
+                
+                <h3 style={{ fontSize: '1rem', fontWeight: 600, margin: '1rem 0 0.5rem 0', color: '#1e293b' }}>Productos ({detalles.length})</h3>
+                <div style={{ maxHeight: '250px', overflowY: 'auto', borderTop: '1px solid #e2e8f0', paddingTop: '0.5rem', marginBottom: '1rem' }}>
+                    {detalles.length === 0 ? (
+                        <p style={{ color: '#64748b', fontSize: '0.85rem', textAlign: 'center', padding: '1rem 0' }}>No se encontraron detalles para esta orden.</p>
+                    ) : (
+                        <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+                            {detalles.map((d, idx) => (
+                                <li key={idx} style={{ display: 'flex', justifyContent: 'space-between', padding: '0.5rem 0', borderBottom: '1px solid #f1f5f9', fontSize: '0.85rem' }}>
+                                    <div style={{ flex: 1, paddingRight: '1rem' }}>
+                                        <div style={{ fontWeight: 600, color: '#334155' }}>{d.producto?.nombre || `Producto #${d.productoId}`}</div>
+                                        <div style={{ color: '#64748b', marginTop: '0.1rem' }}>{d.cantidad} unid. x Q {Number(d.precioUnitario).toFixed(2)}</div>
+                                    </div>
+                                    <div style={{ fontWeight: 600, color: '#0f172a', display: 'flex', alignItems: 'center' }}>
+                                        Q {(Number(d.cantidad) * Number(d.precioUnitario)).toFixed(2)}
+                                    </div>
+                                </li>
+                            ))}
+                        </ul>
+                    )}
+                </div>
+                
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '1rem', borderTop: '1px solid #e2e8f0', fontWeight: 'bold', fontSize: '1.1rem', color: '#0f172a' }}>
+                    <span>Total</span>
+                    <span style={{ color: '#6366f1' }}>Q {Number(total).toFixed(2)}</span>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+/* ══════════════════════════════════════════════════════════════
    COMPONENTE PRINCIPAL
 ══════════════════════════════════════════════════════════════ */
 export const Venta = () => {
@@ -197,10 +259,11 @@ export const Venta = () => {
     const [ordenesLoading, setOrdenesLoading] = useState(true);
     const [ordenesError, setOrdenesError] = useState("");
 
-    /* ── Confirmación ── */
+    /* ── Confirmación y Detalle ── */
     const [confirmLoading, setConfirmLoading] = useState(false);
     const [confirmError, setConfirmError] = useState("");
     const [successModalData, setSuccessModalData] = useState(null);
+    const [detalleModalOpen, setDetalleModalOpen] = useState(null);
 
     /* ── Tabs móvil ── */
     const [mobileTab, setMobileTab] = useState("caja");
@@ -607,7 +670,11 @@ export const Venta = () => {
                         ) : (
                             <div className={styles.ordenesGrid}>
                                 {[...ordenesHoy].reverse().map(o => (
-                                    <OrdenCard key={o.id} orden={o} />
+                                    <OrdenCard 
+                                        key={o.id} 
+                                        orden={o} 
+                                        onClick={(ord) => setDetalleModalOpen(ord)} 
+                                    />
                                 ))}
                             </div>
                         )}
@@ -619,6 +686,11 @@ export const Venta = () => {
                 open={!!successModalData}
                 orden={successModalData}
                 onClose={() => setSuccessModalData(null)}
+            />
+            <OrdenDetalleModal
+                open={!!detalleModalOpen}
+                orden={detalleModalOpen}
+                onClose={() => setDetalleModalOpen(null)}
             />
         </div>
     );

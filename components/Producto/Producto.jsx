@@ -10,6 +10,7 @@ import Api from "@/lib/api";
 import { getUsuario } from "@/lib/auth";
 import { useProducts } from "@/hooks/useProducts";
 import { useCategories } from "@/hooks/useMaestros";
+import { uploadImagesToCloudinary } from "./utils/cloudinary";
 import styles from "./Producto.module.css";
 
 /* ─── Helpers ─── */
@@ -385,8 +386,8 @@ function ProductoModal({ open, onClose, onSaved, initial, usuario }) {
                         </div>
                     )}
 
-                    <Field label="URL foto principal" htmlFor="prod-fotoPrincipal">
-                        <div className={styles.inputWithIcon}>
+                    <Field label="URL foto principal o subir imagen" htmlFor="prod-fotoPrincipal">
+                        <div className={styles.inputWithIcon} style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                             <ImageIcon size={15} className={styles.inputIcon} strokeWidth={2} />
                             <input
                                 id="prod-fotoPrincipal" name="fotoPrincipal" type="url"
@@ -394,14 +395,63 @@ function ProductoModal({ open, onClose, onSaved, initial, usuario }) {
                                 placeholder="https://ejemplo.com/imagen.jpg"
                                 value={form.fotoPrincipal} onChange={handleChange}
                             />
+                            <input 
+                                type="file" 
+                                accept="image/*"
+                                style={{ display: 'none' }} 
+                                id="upload-fotoPrincipal"
+                                onChange={async (e) => {
+                                    if(e.target.files && e.target.files.length > 0) {
+                                        try {
+                                            const urls = await uploadImagesToCloudinary(Array.from(e.target.files));
+                                            if(urls && urls.length > 0) {
+                                                setForm(prev => ({...prev, fotoPrincipal: urls[0]}));
+                                            }
+                                        } catch(err) {
+                                            alert("Error subiendo imagen a Cloudinary");
+                                        }
+                                    }
+                                }}
+                            />
+                            <label htmlFor="upload-fotoPrincipal" className={styles.btnSecondary} style={{ cursor: 'pointer', padding: '0.4rem 0.8rem', margin: 0, whiteSpace: 'nowrap' }}>
+                                Subir
+                            </label>
                         </div>
                     </Field>
 
-                    <Field label="URLs de fotos adicionales (separadas por coma)" htmlFor="prod-fotos">
-                        <textarea id="prod-fotos" name="fotos"
-                            className={styles.textarea}
-                            placeholder="https://img1.com/a.jpg, https://img2.com/b.jpg"
-                            value={form.fotos} onChange={handleChange} rows={2} />
+                    <Field label="URLs de fotos adicionales (separadas por coma) o subir" htmlFor="prod-fotos">
+                        <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
+                            <textarea id="prod-fotos" name="fotos"
+                                className={styles.textarea}
+                                placeholder="https://img1.com/a.jpg, https://img2.com/b.jpg"
+                                value={form.fotos} onChange={handleChange} rows={2} style={{ flex: 1 }} />
+                            <input 
+                                type="file" 
+                                accept="image/*"
+                                multiple
+                                style={{ display: 'none' }} 
+                                id="upload-fotos"
+                                onChange={async (e) => {
+                                    if(e.target.files && e.target.files.length > 0) {
+                                        try {
+                                            const urls = await uploadImagesToCloudinary(Array.from(e.target.files));
+                                            if(urls && urls.length > 0) {
+                                                setForm(prev => {
+                                                    const current = prev.fotos ? prev.fotos.split(',').map(s=>s.trim()).filter(Boolean) : [];
+                                                    const combined = [...current, ...urls].join(', ');
+                                                    return {...prev, fotos: combined};
+                                                });
+                                            }
+                                        } catch(err) {
+                                            alert("Error subiendo imágenes a Cloudinary");
+                                        }
+                                    }
+                                }}
+                            />
+                            <label htmlFor="upload-fotos" className={styles.btnSecondary} style={{ cursor: 'pointer', padding: '0.4rem 0.8rem', margin: 0, whiteSpace: 'nowrap' }}>
+                                Subir
+                            </label>
+                        </div>
                     </Field>
 
                     <div className={styles.row2}>
@@ -512,13 +562,36 @@ function ProductoModal({ open, onClose, onSaved, initial, usuario }) {
                                         </Field>
                                     </div>
                                     <div className={styles.row2}>
-                                        <Field label="URL Foto Principal (opcional)">
-                                            <input
-                                                type="url" className={styles.input}
-                                                placeholder="https://..."
-                                                value={variacion.fotoPrincipal}
-                                                onChange={e => handleVariacionChange(variacion.idTemp, 'fotoPrincipal', e.target.value)}
-                                            />
+                                        <Field label="URL Foto Principal o subir">
+                                            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                                                <input
+                                                    type="url" className={styles.input}
+                                                    placeholder="https://..."
+                                                    value={variacion.fotoPrincipal}
+                                                    onChange={e => handleVariacionChange(variacion.idTemp, 'fotoPrincipal', e.target.value)}
+                                                />
+                                                <input 
+                                                    type="file" 
+                                                    accept="image/*"
+                                                    style={{ display: 'none' }} 
+                                                    id={`upload-var-${variacion.idTemp}`}
+                                                    onChange={async (e) => {
+                                                        if(e.target.files && e.target.files.length > 0) {
+                                                            try {
+                                                                const urls = await uploadImagesToCloudinary(Array.from(e.target.files));
+                                                                if(urls && urls.length > 0) {
+                                                                    handleVariacionChange(variacion.idTemp, 'fotoPrincipal', urls[0]);
+                                                                }
+                                                            } catch(err) {
+                                                                alert("Error subiendo imagen a Cloudinary");
+                                                            }
+                                                        }
+                                                    }}
+                                                />
+                                                <label htmlFor={`upload-var-${variacion.idTemp}`} className={styles.btnSecondary} style={{ cursor: 'pointer', padding: '0.4rem 0.8rem', margin: 0 }}>
+                                                    Subir
+                                                </label>
+                                            </div>
                                         </Field>
                                         <Field label="Stock Inicial">
                                             <input
@@ -722,7 +795,7 @@ const Producto = () => {
                 {fetchError && !fetchLoading && (
                     <div className={styles.centerMsg}>
                         <AlertCircle size={20} className={styles.errorColor} />
-                        <span className={styles.errorColor}>{fetchError}</span>
+                        <span className={styles.errorColor}>{fetchError instanceof Error ? fetchError.message : String(fetchError)}</span>
                         <button className={styles.btnRetry} onClick={loadAll}>Reintentar</button>
                     </div>
                 )}

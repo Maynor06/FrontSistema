@@ -2,22 +2,31 @@
 
 import useSWR from 'swr';
 import Api from '@/lib/api';
+import { getUsuario } from '@/lib/auth';
 
 const fetcher = (url) => Api.get(url);
 
 /**
  * Hook para obtener y cachear productos con SWR.
- * SWR permite que diferentes componentes compartan la misma data sin re-peticiones.
+ * Ahora utiliza el endpoint de establecimiento.
  */
 export function useProducts() {
-    const { data, error, isLoading, mutate } = useSWR('/products', fetcher, {
-        revalidateOnFocus: false, // Evita re-validar cada vez que el usuario cambia de pestaña/ventana
-        revalidateIfStale: true,  // Muestra datos cacheados mientras valida
+    let establecimientoId = null;
+    if (typeof window !== 'undefined') {
+        const usuario = getUsuario();
+        establecimientoId = usuario?.establecimientoId || usuario?.establecimiento?.id;
+    }
+
+    const endpoint = establecimientoId ? `/products/establecimiento/${establecimientoId}` : null;
+
+    const { data, error, isLoading, mutate } = useSWR(endpoint, fetcher, {
+        revalidateOnFocus: false,
+        revalidateIfStale: true,
     });
 
     return {
         products: data || [],
-        isLoading,
+        isLoading: isLoading,
         isError: error,
         mutate
     };

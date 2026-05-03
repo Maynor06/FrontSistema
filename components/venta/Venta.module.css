@@ -263,9 +263,7 @@
     font-size: 0.85rem;
     font-weight: 600;
     color: #0f172a;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    word-wrap: break-word;
 }
 
 .dropdownSlug {
@@ -355,9 +353,7 @@
     font-weight: 600;
     color: #0f172a;
     margin: 0 0 0.1rem;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    word-wrap: break-word;
 }
 
 .cartPriceRow {
