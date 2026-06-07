@@ -4,9 +4,16 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm install
 COPY . .
+
+# --- ESTA ES LA PARTE CLAVE ---
+# Declaramos que recibiremos el argumento del docker-compose y lo volvemos variable de entorno temporal
+ARG NEXT_PUBLIC_API_URL
+ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
+# ------------------------------
+
 RUN npm run build
 
-# Etapa 2: Ejecución en producción
+# Etapa 2: Ejecución en producción (El resto se queda exactamente igual)
 FROM node:20-alpine AS runner
 WORKDIR /app
 ENV NODE_ENV=production
