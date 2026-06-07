@@ -575,8 +575,6 @@ function SectionList({ items, loading, error, onRetry, renderCard, emptyText, em
 ══════════════════════════════════════════════ */
 const TABS = [
     { id: "usuarios", label: "Usuarios", icon: Users },
-    { id: "roles", label: "Roles", icon: ShieldCheck },
-    { id: "permisos", label: "Permisos", icon: Key },
 ];
 
 const Usuario = () => {

@@ -9,15 +9,6 @@ import styles from "./page.module.css";
 
 const QUICK_ACCESS = [
   {
-    id: "establecimientos",
-    label: "Establecimientos",
-    description: "Gestiona los establecimientos registrados",
-    icon: Store,
-    href: "/dashboard/Establecimientos",
-    color: "#6366f1",
-    bg: "rgba(99,102,241,0.1)",
-  },
-  {
     id: "productos",
     label: "Productos",
     description: "Administra el catálogo de productos",

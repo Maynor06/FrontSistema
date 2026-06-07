@@ -101,71 +101,6 @@ export function Movimientos() {
     <div className={styles.movimientosContainer}>
       <div className={styles.movimientosGrid}>
         
-        {/* Lado izquierdo: Buscador de movimientos */}
-        <div className={styles.panelPrincipal}>
-          <h2 className={styles.panelTitle}>
-            <Search size={18} /> Consultar Movimientos
-          </h2>
-          <div className={styles.searchRow}>
-            <select
-              value={productoId}
-              onChange={(e) => setProductoId(e.target.value)}
-              className={styles.inputForm}
-              disabled={loadingProductos}
-            >
-              <option value="">Seleccionar producto...</option>
-              {productos?.map(p => (
-                <option key={p.id} value={p.id}>{p.nombre} {p.slug ? `(/${p.slug})` : ''}</option>
-              ))}
-            </select>
-            <button
-              className={styles.btnPrimary}
-              onClick={buscarMovimientos}
-              disabled={loadingMovimientos}
-            >
-              {loadingMovimientos ? <Loader2 size={16} className={styles.spin} /> : "Buscar"}
-            </button>
-          </div>
-
-          {errorBusqueda && (
-            <div className={styles.errorAlert}>
-              <AlertCircle size={16} /> {errorBusqueda}
-            </div>
-          )}
-
-          <div className={styles.movimientosList}>
-            {movimientos.length === 0 && !loadingMovimientos && !errorBusqueda && (
-              <p className={styles.emptyTextWrapper}>Busca un producto para ver sus movimientos.</p>
-            )}
-            
-            {movimientos.map((mov) => (
-              <div key={mov.id} className={styles.movCard}>
-                <div className={styles.movHeader}>
-                  <span className={styles.movType}>
-                    {mov.tipoMovimiento?.nombre ?? mov.tipoMovimiento ?? 'Desconocido'}
-                  </span>
-                  <span className={styles.movDate}>
-                    {new Date(mov.fecha || mov.fechaMovimiento).toLocaleString()}
-                  </span>
-                </div>
-                <div className={styles.movBody}>
-                  <span>
-                    Establecimiento: {mov.inventario?.establemcimiento?.nombre ?? mov.inventario?.establecimiento?.nombre ?? mov.establecimientoId ?? 'N/A'}
-                  </span>
-                  <span className={Number(mov.cantidad || mov.afectacion) > 0 ? styles.movPositivo : styles.movNegativo}>
-                    Cant: {mov.cantidad || mov.afectacion}
-                  </span>
-                </div>
-                {mov.descripcion && (
-                  <div className={styles.movFooter}>
-                    Desc: {mov.descripcion}
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
-
         {/* Lado derecho: Formulario de Ajuste */}
         <div className={styles.panelLateral}>
           <h2 className={styles.panelTitle}>
@@ -259,6 +194,72 @@ export function Movimientos() {
             </button>
           </form>
         </div>
+
+        {/* Lado izquierdo: Buscador de movimientos */}
+        <div className={styles.panelPrincipal} >
+          <h2 className={styles.panelTitle}>
+            <Search size={18} /> Consultar Movimientos
+          </h2>
+          <div className={styles.searchRow}>
+            <select
+              value={productoId}
+              onChange={(e) => setProductoId(e.target.value)}
+              className={styles.inputForm}
+              disabled={loadingProductos}
+            >
+              <option value="">Seleccionar producto...</option>
+              {productos?.map(p => (
+                <option key={p.id} value={p.id}>{p.nombre} {p.slug ? `(/${p.slug})` : ''}</option>
+              ))}
+            </select>
+            <button
+              className={styles.btnPrimary}
+              onClick={buscarMovimientos}
+              disabled={loadingMovimientos}
+            >
+              {loadingMovimientos ? <Loader2 size={16} className={styles.spin} /> : "Buscar"}
+            </button>
+          </div>
+
+          {errorBusqueda && (
+            <div className={styles.errorAlert}>
+              <AlertCircle size={16} /> {errorBusqueda}
+            </div>
+          )}
+
+          <div className={styles.movimientosList}>
+            {movimientos.length === 0 && !loadingMovimientos && !errorBusqueda && (
+              <p className={styles.emptyTextWrapper}>Busca un producto para ver sus movimientos.</p>
+            )}
+            
+            {movimientos.map((mov) => (
+              <div key={mov.id} className={styles.movCard}>
+                <div className={styles.movHeader}>
+                  <span className={styles.movType}>
+                    {mov.tipoMovimiento?.nombre ?? mov.tipoMovimiento ?? 'Desconocido'}
+                  </span>
+                  <span className={styles.movDate}>
+                    {new Date(mov.fecha || mov.fechaMovimiento).toLocaleString()}
+                  </span>
+                </div>
+                <div className={styles.movBody}>
+                  <span>
+                    Establecimiento: {mov.inventario?.establemcimiento?.nombre ?? mov.inventario?.establecimiento?.nombre ?? mov.establecimientoId ?? 'N/A'}
+                  </span>
+                  <span className={Number(mov.cantidad || mov.afectacion) > 0 ? styles.movPositivo : styles.movNegativo}>
+                    Cant: {mov.cantidad || mov.afectacion}
+                  </span>
+                </div>
+                {mov.descripcion && (
+                  <div className={styles.movFooter}>
+                    Desc: {mov.descripcion}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+
 
       </div>
     </div>

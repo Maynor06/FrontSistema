@@ -1,21 +1,15 @@
 [
   {
-    "id": "establecimientos",
-    "label": "Establecimientos",
-    "icon": "Store",
-    "href": "/dashboard/Establecimientos"
+    "id": "ventas",
+    "label": "Ventas",
+    "icon": "ShoppingCart",
+    "href": "/dashboard/ventas"
   },
   {
     "id": "productos",
     "label": "Productos",
     "icon": "Package",
     "href": "/dashboard/productos"
-  },
-  {
-    "id": "ventas",
-    "label": "Ventas",
-    "icon": "ShoppingCart",
-    "href": "/dashboard/ventas"
   },
   {
     "id": "compras",
