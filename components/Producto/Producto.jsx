@@ -4,17 +4,129 @@ import { useState, useEffect } from "react";
 import {
     Package, Plus, Search, Pencil, Trash2, X,
     Tag, DollarSign, AlertCircle, Loader2,
-    ImageIcon,
+    ImageIcon, Camera,
 } from "lucide-react";
 import Api from "@/lib/api";
 import { getUsuario } from "@/lib/auth";
 import { useProducts } from "@/hooks/useProducts";
-import { useCategories } from "@/hooks/useMaestros";
+import { useCategories, useProductsMaestro } from "@/hooks/useMaestros";
 import { uploadImagesToCloudinary } from "./utils/cloudinary";
 import styles from "./Producto.module.css";
 
 /* ─── Helpers ─── */
 const fmt = (n) => n != null ? `Q${Number(n).toFixed(2)}` : "—";
+
+// Componente helper para escanear códigos de barras
+// Componente helper para escanear códigos de barras
+export function BarcodeScannerOverlay({ open, onScan, onClose }) {
+    const [scanError, setScanError] = useState("");
+
+    useEffect(() => {
+        if (!open) return;
+
+        let html5QrCode;
+        let active = true;
+
+        const startScanner = async () => {
+            try {
+                // Importación dinámica para prevenir errores SSR en Next.js
+                const { Html5Qrcode, Html5QrcodeSupportedFormats } = await import("html5-qrcode");
+                if (!active) return;
+
+                // Definir formatos específicos para acelerar y mejorar el escaneo de códigos de barra
+                const formatsToSupport = [
+                    Html5QrcodeSupportedFormats.EAN_13,
+                    Html5QrcodeSupportedFormats.EAN_8,
+                    Html5QrcodeSupportedFormats.UPC_A,
+                    Html5QrcodeSupportedFormats.UPC_E,
+                    Html5QrcodeSupportedFormats.CODE_128,
+                    Html5QrcodeSupportedFormats.CODE_39,
+                    Html5QrcodeSupportedFormats.CODE_93,
+                    Html5QrcodeSupportedFormats.ITF,
+                    Html5QrcodeSupportedFormats.QR_CODE
+                ];
+
+                html5QrCode = new Html5Qrcode("barcode-scanner-viewport", {
+                    formatsToSupport: formatsToSupport,
+                    useBarCodeDetectorIfSupported: true
+                });
+
+                await html5QrCode.start(
+                    { facingMode: "environment" },
+                    {
+                        fps: 10,             // 10 fps es ideal para procesamiento estable en móviles
+                        qrbox: (width, height) => {
+                            // Un recuadro más ancho y delgado optimizado para códigos de barra de productos
+                            const boxWidth = Math.min(width - 40, 280);
+                            const boxHeight = Math.min(height - 40, 130);
+                            return { width: boxWidth, height: boxHeight };
+                        },
+                        aspectRatio: 1.777778, // 16:9 aspecto estándar
+                        disableFlip: true      // No voltear horizontalmente para mantener legibilidad de códigos de barras
+                    },
+                    (decodedText) => {
+                        onScan(decodedText);
+                        onClose();
+                    },
+                    (errorMessage) => {
+                        // Ignorar errores repetitivos de escaneo fallido
+                    }
+                );
+            } catch (err) {
+                console.error("Scanner error", err);
+                if (active) {
+                    setScanError("No se pudo iniciar la cámara. Verifica los permisos.");
+                }
+            }
+        };
+
+        const timer = setTimeout(startScanner, 300);
+
+        return () => {
+            active = false;
+            clearTimeout(timer);
+            if (html5QrCode) {
+                if (html5QrCode.isScanning) {
+                    html5QrCode.stop()
+                        .catch(err => console.error("Error stopping scanner on unmount", err));
+                }
+            }
+        };
+    }, [open, onScan, onClose]);
+
+    if (!open) return null;
+
+    return (
+        <div className={styles.scannerOverlay}>
+            <div className={styles.scannerModal}>
+                <div className={styles.scannerHeader}>
+                    <h3>Escanear Código de Barras</h3>
+                    <button type="button" onClick={onClose} className={styles.closeBtn}>
+                        <X size={20} />
+                    </button>
+                </div>
+                <div className={styles.scannerBody}>
+                    {scanError ? (
+                        <p className={styles.scannerError}>{scanError}</p>
+                    ) : (
+                        <div className={styles.scannerViewportContainer}>
+                            <div id="barcode-scanner-viewport" className={styles.scannerViewport}></div>
+                            <div className={styles.scannerLaser}></div>
+                        </div>
+                    )}
+                    <p className={styles.scannerInstruction}>
+                        Apunta la cámara al código de barras del producto.
+                    </p>
+                </div>
+                <div className={styles.scannerActions}>
+                    <button type="button" onClick={onClose} className={styles.btnSecondary}>
+                        Cancelar
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+}
 
 // 2. Retornamos el objeto completo
 const EMPTY_FORM = {
@@ -34,6 +146,7 @@ const EMPTY_FORM = {
     variacionNombre: "",
     variaciones: [],
     presentaciones: [],
+    productoMaestroId: "",
 };
 
 const ProductFormMode = {
@@ -41,7 +154,6 @@ const ProductFormMode = {
     PRODUCTO_MAESTRO: 'PRODUCTO_MAESTRO',
     AGREGAR_VARIACIONES: 'AGREGAR_VARIACIONES'
 };
-;
 
 
 /* ─── Card de producto ─── */
@@ -152,6 +264,16 @@ function ProductoModal({ open, onClose, onSaved, initial, usuario, modalMode = P
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
     const { categories, isLoading: catLoading } = useCategories();
+    const { maestros, isLoading: maestrosLoading } = useProductsMaestro();
+    const [scanner, setScanner] = useState(null); // { onScan: (code) => void } | null
+
+    const startScan = (onScan) => {
+        setScanner({ onScan });
+    };
+
+    const stopScan = () => {
+        setScanner(null);
+    };
 
     /* Pre-llenado */
     useEffect(() => {
@@ -166,6 +288,7 @@ function ProductoModal({ open, onClose, onSaved, initial, usuario, modalMode = P
                 descripcion: initial?.descripcion ?? "",
                 categoriaId: initial?.categoriaId ?? "",
                 variacionNombre: initial?.variacionNombre ?? "",
+                productoMaestroId: initial?.id ?? "",
                 variaciones: [
                     {
                         idTemp: Date.now().toString() + Math.random().toString(36).substr(2, 5),
@@ -265,6 +388,19 @@ function ProductoModal({ open, onClose, onSaved, initial, usuario, modalMode = P
                         nombre: "Unidad",
                         factorConversion: 1,
                         precioVenta: ""
+                    }];
+                }
+            } else if (newMode === ProductFormMode.AGREGAR_VARIACIONES) {
+                next.esVariacion = false;
+                next.productoMaestroId = "";
+                if (next.variaciones.length === 0) {
+                    next.variaciones = [{
+                        idTemp: Date.now().toString() + Math.random().toString(36).substr(2, 5),
+                        valor: "",
+                        codigoBarras: "",
+                        fotoPrincipal: "",
+                        stockInicial: "",
+                        precioCompra: ""
                     }];
                 }
             } else {
@@ -453,6 +589,8 @@ function ProductoModal({ open, onClose, onSaved, initial, usuario, modalMode = P
         }
         else if (currentMode === ProductFormMode.AGREGAR_VARIACIONES) {
             // Validaciones
+            const targetId = form.productoMaestroId || initial?.id;
+            if (!targetId) { setError("Debes seleccionar un producto maestro."); return; }
             if (form.variaciones.length === 0) { setError("Debes agregar al menos una variación."); return; }
 
             // Validar variaciones
@@ -482,7 +620,8 @@ function ProductoModal({ open, onClose, onSaved, initial, usuario, modalMode = P
         try {
             let saved;
             if (currentMode === ProductFormMode.AGREGAR_VARIACIONES) {
-                saved = await Api.post(`/products/${initial.id}/variaciones`, payload);
+                const targetId = form.productoMaestroId || initial?.id;
+                saved = await Api.post(`/products/${targetId}/variaciones`, payload);
             } else if (isEdit) {
                 saved = await Api.patch(`/products/${initial.id}`, payload);
             } else {
@@ -522,9 +661,9 @@ function ProductoModal({ open, onClose, onSaved, initial, usuario, modalMode = P
                         </div>
                     )}
 
-                    {/* Selector de modo (Solo al crear nuevo producto y no agregando variaciones) */}
+                    {/* Selector de modo (Solo al crear nuevo producto) */}
                     {
-                        !isEdit && modalMode !== ProductFormMode.AGREGAR_VARIACIONES && (
+                        !isEdit && (
                             <div className={styles.modeSelector}>
                                 <button
                                     type="button"
@@ -540,18 +679,57 @@ function ProductoModal({ open, onClose, onSaved, initial, usuario, modalMode = P
                                 >
                                     Producto Maestro
                                 </button>
+                                <button
+                                    type="button"
+                                    className={`${styles.modeTab} ${currentMode === ProductFormMode.AGREGAR_VARIACIONES ? styles.modeTabActive : ""}`}
+                                    onClick={() => handleModeChange(ProductFormMode.AGREGAR_VARIACIONES)}
+                                >
+                                    Agregar Variación
+                                </button>
                             </div>
+                        )
+                    }
+
+                    {/* Selector de Producto Maestro (Solo al agregar variaciones) */}
+                    {
+                        currentMode === ProductFormMode.AGREGAR_VARIACIONES && (
+                            <Field label="Producto Maestro *" htmlFor="prod-maestroId">
+                                <select
+                                    id="prod-maestroId"
+                                    name="productoMaestroId"
+                                    className={styles.input}
+                                    value={form.productoMaestroId}
+                                    onChange={handleChange}
+                                    disabled={maestrosLoading || !!initial?.id}
+                                >
+                                    <option value="">— Selecciona un Producto Maestro —</option>
+                                    {maestros.map((m) => (
+                                        <option key={m.id} value={m.id}>
+                                            {m.nombre} {m.variacionNombre ? `(${m.variacionNombre})` : ''}
+                                        </option>
+                                    ))}
+                                </select>
+                                {maestrosLoading && <span className={styles.loadingTextSmall}>Cargando maestros...</span>}
+                            </Field>
                         )
                     }
 
                     {/* Encabezado informativo para agregar variaciones */}
                     {
-                        currentMode === ProductFormMode.AGREGAR_VARIACIONES && (
-                            <div className={styles.readOnlyHeader}>
-                                <h3>{form.nombre}</h3>
-                                <p>{form.descripcion}</p>
-                                <span className={styles.readOnlyLabel}>Variación: {form.variacionNombre || "—"}</span>
-                            </div>
+                        currentMode === ProductFormMode.AGREGAR_VARIACIONES && form.productoMaestroId && (
+                            (() => {
+                                const selectedMaestro = maestros.find(m => String(m.id) === String(form.productoMaestroId)) || initial;
+                                if (!selectedMaestro) return null;
+                                return (
+                                    <div className={styles.readOnlyHeader}>
+                                        <h3>{selectedMaestro.nombre}</h3>
+                                        {selectedMaestro.descripcion && <p>{selectedMaestro.descripcion}</p>}
+                                        <span className={styles.readOnlyLabel}>
+                                            Variación heredada: {selectedMaestro.variacionNombre || "—"}
+                                        </span>
+                                    </div>
+                                );
+                            })()
                         )
                     }
 
@@ -736,12 +914,24 @@ function ProductoModal({ open, onClose, onSaved, initial, usuario, modalMode = P
                                                 />
                                             </Field>
                                             <Field label="Código de Barras *">
-                                                <input
-                                                    type="text" className={styles.input}
-                                                    value={variacion.codigoBarras}
-                                                    placeholder="Ej. 111"
-                                                    onChange={e => handleVariacionChange(variacion.idTemp, 'codigoBarras', e.target.value)}
-                                                />
+                                                <div style={{ display: 'flex', gap: '8px' }}>
+                                                    <input
+                                                        type="text" className={styles.input}
+                                                        value={variacion.codigoBarras}
+                                                        placeholder="Ej. 111"
+                                                        onChange={e => handleVariacionChange(variacion.idTemp, 'codigoBarras', e.target.value)}
+                                                        style={{ flex: 1 }}
+                                                    />
+                                                    <button
+                                                        type="button"
+                                                        className={styles.btnSecondary}
+                                                        title="Escanear código de barras"
+                                                        onClick={() => startScan((code) => handleVariacionChange(variacion.idTemp, 'codigoBarras', code))}
+                                                        style={{ padding: '0 0.75rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                                                    >
+                                                        <Camera size={16} />
+                                                    </button>
+                                                </div>
                                             </Field>
                                         </div>
                                         <div className={styles.row2}>
@@ -844,11 +1034,23 @@ function ProductoModal({ open, onClose, onSaved, initial, usuario, modalMode = P
 
                                 <div className={styles.row2}>
                                     <Field label="Código de barras *" htmlFor="prod-codigoBarras">
-                                        <input
-                                            id="prod-codigoBarras" name="codigoBarras" type="text"
-                                            className={styles.input} placeholder="Ej. 740101561234"
-                                            value={form.codigoBarras} onChange={handleChange}
-                                        />
+                                        <div style={{ display: 'flex', gap: '8px' }}>
+                                            <input
+                                                id="prod-codigoBarras" name="codigoBarras" type="text"
+                                                className={styles.input} placeholder="Ej. 740101561234"
+                                                value={form.codigoBarras} onChange={handleChange}
+                                                style={{ flex: 1 }}
+                                            />
+                                            <button
+                                                type="button"
+                                                className={styles.btnSecondary}
+                                                title="Escanear código de barras"
+                                                onClick={() => startScan((code) => setForm(prev => ({ ...prev, codigoBarras: code })))}
+                                                style={{ padding: '0 0.75rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                                            >
+                                                <Camera size={16} />
+                                            </button>
+                                        </div>
                                     </Field>
                                     <Field label="Stock inicial" htmlFor="prod-stockInicial">
                                         <input
@@ -883,6 +1085,11 @@ function ProductoModal({ open, onClose, onSaved, initial, usuario, modalMode = P
                     </div>
                 </form >
             </div >
+            <BarcodeScannerOverlay
+                open={!!scanner}
+                onScan={scanner?.onScan}
+                onClose={stopScan}
+            />
         </div >
     );
 }
@@ -923,6 +1130,7 @@ function DeleteConfirmModal({ open, onClose, onConfirm, producto, loading }) {
 const Producto = () => {
     const usuario = getUsuario();
     const { products: list, isLoading: fetchLoading, isError: fetchError, mutate } = useProducts();
+    const { mutate: mutateMaestros } = useProductsMaestro();
 
     const [modalOpen, setModalOpen] = useState(false);
     const [editTarget, setEditTarget] = useState(null);
@@ -963,6 +1171,7 @@ const Producto = () => {
 
     const handleSaved = () => {
         mutate();
+        mutateMaestros();
     };
 
     /* ── Handlers eliminar ── */

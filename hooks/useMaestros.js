@@ -2,6 +2,7 @@
 
 import useSWR from 'swr';
 import Api from '@/lib/api';
+import { getUsuario } from '@/lib/auth';
 
 const fetcher = (url) => Api.get(url);
 
@@ -38,6 +39,25 @@ export function useProveedores() {
     const { data, error, isLoading, mutate } = useSWR('/proveedor', fetcher);
     return {
         proveedores: data || [],
+        isLoading,
+        isError: error,
+        mutate
+    };
+}
+
+/**
+ * Hook para obtener productos maestros.
+ */
+export function useProductsMaestro() {
+    let establecimientoId = null;
+    if (typeof window !== 'undefined') {
+        const usuario = getUsuario();
+        establecimientoId = usuario?.establecimientoId || usuario?.establecimiento?.id;
+    }
+    const endpoint = establecimientoId ? `/products/maestro` : null;
+    const { data, error, isLoading, mutate } = useSWR(endpoint, fetcher);
+    return {
+        maestros: data || [],
         isLoading,
         isError: error,
         mutate

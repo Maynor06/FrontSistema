@@ -4,11 +4,12 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import {
     ShoppingCart, Search, Plus, Minus, Trash2,
     CheckCircle, X, AlertCircle, Loader2, Package,
-    Clock, CalendarDays, RefreshCw, Tag,
+    Clock, CalendarDays, RefreshCw, Tag, Camera,
 } from "lucide-react";
 import Api from "@/lib/api";
 import { getUsuario } from "@/lib/auth";
 import { useProducts } from "@/hooks/useProducts";
+import { BarcodeScannerOverlay } from "../Producto/Producto";
 import styles from "./Venta.module.css";
 
 /* ══════════════════════════════════════════════════════════════
@@ -250,6 +251,7 @@ export const Venta = () => {
     const [sugerencias, setSugerencias] = useState([]);
     const searchRef = useRef(null);
     const [showSug, setShowSug] = useState(false);
+    const [showCameraScanner, setShowCameraScanner] = useState(false);
 
     /* ── Carrito ── */
     const [carrito, setCarrito] = useState([]);
@@ -304,11 +306,64 @@ export const Venta = () => {
         if (!busqueda.trim()) { setSugerencias([]); setShowSug(false); return; }
         const q = busqueda.toLowerCase();
         const found = productos
-            .filter(p => p.nombre?.toLowerCase().includes(q) || p.slug?.toLowerCase().includes(q))
+            .filter(p => {
+                const cod = (p.codigo_barras || p.codigo || p.codigoBarras || "").toLowerCase();
+                return (
+                    p.nombre?.toLowerCase().includes(q) ||
+                    p.slug?.toLowerCase().includes(q) ||
+                    cod.includes(q)
+                );
+            })
             .slice(0, 8);
         setSugerencias(found);
         setShowSug(found.length > 0);
     }, [busqueda, productos]);
+
+    // Lógica para detectar código de barras de manera automática y agregarlo al carrito
+    useEffect(() => {
+        const term = busqueda.trim().toLowerCase();
+        if (term.length < 8) return; // Evitar coincidencia prematura con códigos cortos manuales
+        
+        const exactMatch = productos.find(p => {
+            const cod = (p.codigo_barras || p.codigo || p.codigoBarras || "").toLowerCase();
+            return cod === term;
+        });
+        
+        if (exactMatch) {
+            agregarProducto(exactMatch);
+            setBusqueda("");
+            setShowSug(false);
+        }
+    }, [busqueda, productos]);
+
+    // Manejador de teclado para cuando se presiona Enter (soporta scanners físicos USB y búsquedas rápidas)
+    const handleSearchKeyDown = (e) => {
+        if (e.key === "Enter") {
+            e.preventDefault();
+            const term = busqueda.trim().toLowerCase();
+            if (!term) return;
+
+            // Primero buscamos si hay una coincidencia exacta de código de barras
+            const exactMatch = productos.find(p => {
+                const cod = (p.codigo_barras || p.codigo || p.codigoBarras || "").toLowerCase();
+                return cod === term;
+            });
+
+            if (exactMatch) {
+                agregarProducto(exactMatch);
+                setBusqueda("");
+                setShowSug(false);
+                return;
+            }
+
+            // Si no hay coincidencia exacta pero tenemos sugerencias en la lista, agregamos la primera
+            if (sugerencias.length > 0) {
+                agregarProducto(sugerencias[0]);
+                setBusqueda("");
+                setShowSug(false);
+            }
+        }
+    };
 
     useEffect(() => {
         const handler = (e) => {
@@ -501,15 +556,27 @@ export const Venta = () => {
                                 <input
                                     id="input-buscar-producto"
                                     type="text"
-                                    placeholder={prodLoading ? "Cargando productos…" : "Nombre o slug del producto…"}
+                                    placeholder={prodLoading ? "Cargando productos…" : "Nombre, slug o código de barras…"}
                                     className={styles.searchInput}
                                     value={busqueda}
                                     onChange={e => setBusqueda(e.target.value)}
                                     onFocus={() => sugerencias.length > 0 && setShowSug(true)}
+                                    onKeyDown={handleSearchKeyDown}
                                     disabled={prodLoading}
                                     autoComplete="off"
                                 />
-                                {prodLoading && <Loader2 size={14} className={`${styles.searchIcoRight} ${styles.spin}`} />}
+                                {prodLoading ? (
+                                    <Loader2 size={14} className={`${styles.searchIcoRight} ${styles.spin}`} />
+                                ) : (
+                                    <button
+                                        type="button"
+                                        className={styles.btnScanCamera}
+                                        title="Escanear código de barras con la cámara"
+                                        onClick={() => setShowCameraScanner(true)}
+                                    >
+                                        <Camera size={15} />
+                                    </button>
+                                )}
                             </div>
 
                             {showSug && (
@@ -691,6 +758,23 @@ export const Venta = () => {
                 open={!!detalleModalOpen}
                 orden={detalleModalOpen}
                 onClose={() => setDetalleModalOpen(null)}
+            />
+            <BarcodeScannerOverlay
+                open={showCameraScanner}
+                onScan={(code) => {
+                    const match = productos.find(p => {
+                        const cod = (p.codigo_barras || p.codigo || p.codigoBarras || "").toLowerCase();
+                        return cod === code.trim().toLowerCase();
+                    });
+                    if (match) {
+                        agregarProducto(match);
+                    } else {
+                        setBusqueda(code);
+                        alert(`Código escaneado: "${code}", pero no coincide con ningún producto de la tienda.`);
+                    }
+                    setShowCameraScanner(false);
+                }}
+                onClose={() => setShowCameraScanner(false)}
             />
         </div>
     );
