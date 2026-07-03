@@ -183,23 +183,12 @@ function ProductoCard({ producto, onEdit, onDelete, onAddVariations }) {
                     <div>
                         <h3 className={styles.cardName}>
                             {producto.nombre}
-                            {isMaster && <span className={styles.masterTitleBadge}>Maestro</span>}
                         </h3>
                         {producto.descripcion && (
                             <p className={styles.cardDesc}>{producto.descripcion}</p>
                         )}
                     </div>
                     <div className={styles.cardActions}>
-                        {isMaster && (
-                            <button
-                                id={`btn-add-var-prod-${producto.id}`}
-                                className={styles.actionBtn}
-                                onClick={() => onAddVariations(producto)}
-                                title="Agregar Variaciones"
-                            >
-                                <Plus size={15} strokeWidth={1.8} />
-                            </button>
-                        )}
                         <button
                             id={`btn-edit-prod-${producto.id}`}
                             className={styles.actionBtn}
@@ -221,7 +210,7 @@ function ProductoCard({ producto, onEdit, onDelete, onAddVariations }) {
 
                 <div className={styles.cardPrices}>
                     <span className={styles.pricePrincipal}>
-                        <DollarSign size={12} strokeWidth={2} />{fmt(producto.precio ?? producto.presentaciones?.[0]?.precioVenta ?? producto.precioNormal)}
+                        {fmt(producto.presentaciones?.reduce((actual, min) => parseFloat(actual.precioVenta) < parseFloat(min.precioVenta) ? actual : min)?.precioVenta)}
                     </span>
                     {producto.precioConDescuento && (
                         <span className={styles.priceDiscount}>{fmt(producto.precioConDescuento)}</span>
