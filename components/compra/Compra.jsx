@@ -15,65 +15,79 @@ import styles from "./Compra.module.css";
 /* ══════════════════════════════════════════════
    ITEM DEL CARRITO DE COMPRA
 ══════════════════════════════════════════════ */
-function CompraItem({ item, onAdd, onRemove, onDelete, onPrecioChange, onToggleCaja }) {
-    const isCaja = item.porCaja;
-    const qty = isCaja ? item.cajas : item.cantidad;
-    const precio = isCaja ? item.precioCompraCaja : item.precioCompra;
-    const subtotal = precio * qty;
+function CompraItem({ item, onAdd, onRemove, onDelete, onPrecioChange, onChangePresentation, onSetCantidad }) {
+    const qty = item.cantidad;
+    const precio = item.precioCompra;
+    const subtotal = (Number(precio) || 0) * qty;
 
     return (
-        <div className={styles.cartItem} id={`compra-item-${item.productoId}`}>
+        <div className={styles.cartItem} id={`compra-item-${item.productoId}-${item.selectedPresentation.id}`}>
             <div className={styles.cartItemInfo}>
-                <p className={styles.cartItemName}>{item.nombre}</p>
+                <p className={styles.cartItemName}>
+                    {item.nombre}
+                    {item.valorVariacion && !item.nombre.toLowerCase().includes(item.valorVariacion.toLowerCase()) ? ` (${item.valorVariacion})` : ""}
+                    {" - "}{item.selectedPresentation.nombrePresentacion}
+                </p>
+
+                {/* Badges para los tipos de presentaciones */}
+                <div className={styles.presBadgesRow}>
+                    {item.variacionesDisponibles.map((pres) => (
+                        <button
+                            key={pres.id}
+                            type="button"
+                            className={`${styles.presBadge} ${item.selectedPresentation.id === pres.id ? styles.presBadgeActive : ""}`}
+                            onClick={() => onChangePresentation(item.productoId, item.selectedPresentation.id, pres)}
+                        >
+                            {pres.nombrePresentacion}
+                        </button>
+                    ))}
+                </div>
+
                 <div className={styles.precioWrap}>
-                    <span className={styles.precioLabel}>Precio {isCaja ? "por caja" : "compra"}:</span>
+                    <span className={styles.precioLabel}>Precio por {item.selectedPresentation.nombrePresentacion}:</span>
                     <div className={styles.precioInputWrap}>
                         <span className={styles.precioPrefix}>Q</span>
                         <input
-                            id={`precio-${item.productoId}`}
+                            id={`precio-${item.productoId}-${item.selectedPresentation.id}`}
                             type="number"
                             step="0.01"
                             min="0.01"
                             className={styles.precioInput}
                             value={precio}
-                            onChange={e => onPrecioChange(item.productoId, e.target.value)}
+                            onChange={e => onPrecioChange(item.productoId, item.selectedPresentation.id, e.target.value)}
                         />
                     </div>
                 </div>
-                {item.unidadesCaja > 0 && (
-                    <label className={styles.cajaCheck} htmlFor={`caja-${item.productoId}`}>
-                        <input 
-                            type="checkbox" 
-                            id={`caja-${item.productoId}`} 
-                            checked={isCaja} 
-                            onChange={() => onToggleCaja(item.productoId)} 
-                        />
-                        Comprar por caja ({item.unidadesCaja} uds)
-                    </label>
-                )}
-                {isCaja && (
+
+                {item.selectedPresentation.factorConversion > 1 && (
                     <p className={styles.cajaInfo}>
-                        Total: {qty * item.unidadesCaja} unidades a Q {(precio / item.unidadesCaja).toFixed(2)} c/u
+                        Total: {qty * item.selectedPresentation.factorConversion} unidades a Q {(Number(precio || 0) / item.selectedPresentation.factorConversion).toFixed(2)} c/u
                     </p>
                 )}
             </div>
 
             <div className={styles.cartItemControls}>
-                <button id={`btn-minus-c-${item.productoId}`} className={styles.qtyBtn}
-                    onClick={() => onRemove(item.productoId)} title="Quitar">
+                <button id={`btn-minus-c-${item.productoId}-${item.selectedPresentation.id}`} className={styles.qtyBtn}
+                    onClick={() => onRemove(item.productoId, item.selectedPresentation.id)} title="Quitar">
                     <Minus size={13} strokeWidth={2.5} />
                 </button>
-                <span className={styles.qtyNum}>{qty}</span>
-                <button id={`btn-plus-c-${item.productoId}`} className={`${styles.qtyBtn} ${styles.qtyBtnAdd}`}
-                    onClick={() => onAdd(item.productoId)} title="Agregar">
+                <input
+                    type="number"
+                    min="1"
+                    className={styles.qtyInput}
+                    value={qty}
+                    onChange={(e) => onSetCantidad(item.productoId, item.selectedPresentation.id, e.target.value)}
+                />
+                <button id={`btn-plus-c-${item.productoId}-${item.selectedPresentation.id}`} className={`${styles.qtyBtn} ${styles.qtyBtnAdd}`}
+                    onClick={() => onAdd(item.productoId, item.selectedPresentation.id)} title="Agregar">
                     <Plus size={13} strokeWidth={2.5} />
                 </button>
             </div>
 
             <div className={styles.cartItemRight}>
                 <span className={styles.cartSubtotal}>Q {subtotal.toFixed(2)}</span>
-                <button id={`btn-del-c-${item.productoId}`} className={styles.cartItemDel}
-                    onClick={() => onDelete(item.productoId)} title="Eliminar">
+                <button id={`btn-del-c-${item.productoId}-${item.selectedPresentation.id}`} className={styles.cartItemDel}
+                    onClick={() => onDelete(item.productoId, item.selectedPresentation.id)} title="Eliminar">
                     <Trash2 size={13} strokeWidth={2} />
                 </button>
             </div>
@@ -221,64 +235,106 @@ export const Compra = () => {
         setBusqueda("");
         setShowSug(false);
         setCarrito(prev => {
-            const existe = prev.find(i => i.productoId === String(prod.id));
+            const presentations = Array.isArray(prod.presentaciones) && prod.presentaciones.length > 0
+                ? prod.presentaciones.map(p => ({
+                    id: String(p.id),
+                    nombrePresentacion: p.nombrePresentacion || p.nombre || "Unidad",
+                    factorConversion: Number(p.factorConversion) || 1,
+                    precioVenta: Number(p.precioVenta) || 0
+                }))
+                : [{ id: "default", nombrePresentacion: "Unidad", factorConversion: 1, precioVenta: Number(prod.precioNormal || prod.precio || 0) }];
+
+            const defaultPres = presentations.find(p => p.factorConversion === 1) || presentations[0];
+
+            const existe = prev.find(i => i.productoId === String(prod.id) && i.selectedPresentation.id === defaultPres.id);
             if (existe) {
-                return prev.map(i => {
-                    if (i.productoId === String(prod.id)) {
-                        if (i.porCaja) return { ...i, cajas: i.cajas + 1 };
-                        return { ...i, cantidad: i.cantidad + 1 };
-                    }
-                    return i;
-                });
+                return prev.map(i => (i.productoId === String(prod.id) && i.selectedPresentation.id === defaultPres.id)
+                    ? { ...i, cantidad: i.cantidad + 1 }
+                    : i
+                );
             }
-            
+
             const precioBase = Number(prod.precioCompra ?? prod.precio ?? 0);
-            const udsCaja = Number(prod.unidadesCaja ?? 0);
-            
-            return [...prev, {
-                productoId: String(prod.id),
-                nombre: prod.nombre,
-                precioCompra: precioBase,
-                cantidad: 1,
-                unidadesCaja: udsCaja,
-                porCaja: false,
-                cajas: 1,
-                precioCompraCaja: precioBase * (udsCaja > 0 ? udsCaja : 1),
-            }];
+            const defaultPrecioCompra = precioBase * defaultPres.factorConversion;
+
+            return [
+                {
+                    productoId: String(prod.id),
+                    nombre: prod.nombre,
+                    valorVariacion: prod.valorVariacion || "",
+                    variacionesDisponibles: presentations,
+                    selectedPresentation: defaultPres,
+                    precioCompra: defaultPrecioCompra,
+                    cantidad: 1,
+                },
+                ...prev
+            ];
         });
     };
 
-    const incrementar = (id) => setCarrito(p => p.map(i => {
-        if (i.productoId === id) {
-            if (i.porCaja) return { ...i, cajas: i.cajas + 1 };
-            return { ...i, cantidad: i.cantidad + 1 };
-        }
-        return i;
-    }));
-    
-    const decrementar = (id) => setCarrito(p => {
-        const item = p.find(i => i.productoId === id);
-        if (!item) return p;
-        if (item.porCaja) {
-            if (item.cajas <= 1) return p.filter(i => i.productoId !== id);
-            return p.map(i => i.productoId === id ? { ...i, cajas: i.cajas - 1 } : i);
-        } else {
-            if (item.cantidad <= 1) return p.filter(i => i.productoId !== id);
-            return p.map(i => i.productoId === id ? { ...i, cantidad: i.cantidad - 1 } : i);
-        }
-    });
+    const incrementar = (productoId, presentationId) =>
+        setCarrito(prev => prev.map(i => (i.productoId === productoId && i.selectedPresentation.id === presentationId) ? { ...i, cantidad: i.cantidad + 1 } : i));
 
-    const eliminar = (id) => setCarrito(p => p.filter(i => i.productoId !== id));
-    
-    const cambiarPrecio = (id, val) => setCarrito(p => p.map(i => {
-        if (i.productoId === id) {
-            if (i.porCaja) return { ...i, precioCompraCaja: val === "" ? "" : Number(val) };
-            return { ...i, precioCompra: val === "" ? "" : Number(val) };
-        }
-        return i;
-    }));
+    const decrementar = (productoId, presentationId) =>
+        setCarrito(prev => {
+            const item = prev.find(i => i.productoId === productoId && i.selectedPresentation.id === presentationId);
+            if (!item) return prev;
+            if (item.cantidad <= 1) return prev.filter(i => !(i.productoId === productoId && i.selectedPresentation.id === presentationId));
+            return prev.map(i => (i.productoId === productoId && i.selectedPresentation.id === presentationId) ? { ...i, cantidad: i.cantidad - 1 } : i);
+        });
 
-    const toggleCaja = (id) => setCarrito(p => p.map(i => i.productoId === id ? { ...i, porCaja: !i.porCaja } : i));
+    const setCantidad = (productoId, presentationId, value) => {
+        const val = parseInt(value, 10);
+        if (isNaN(val) || val < 1) return;
+        setCarrito(prev => prev.map(i => (i.productoId === productoId && i.selectedPresentation.id === presentationId) ? { ...i, cantidad: val } : i));
+    };
+
+    const eliminar = (productoId, presentationId) =>
+        setCarrito(prev => prev.filter(i => !(i.productoId === productoId && i.selectedPresentation.id === presentationId)));
+
+    const cambiarPrecio = (productoId, presentationId, val) =>
+        setCarrito(prev => prev.map(i => {
+            if (i.productoId !== productoId || i.selectedPresentation.id !== presentationId) return i;
+            return {
+                ...i,
+                precioCompra: val === "" ? "" : Number(val)
+            };
+        }));
+
+    const changePresentation = (productoId, currentPresentationId, newPresentation) => {
+        setCarrito(prev => {
+            const alreadyExists = prev.find(i => i.productoId === productoId && i.selectedPresentation.id === newPresentation.id);
+            const targetItem = prev.find(i => i.productoId === productoId && i.selectedPresentation.id === currentPresentationId);
+
+            if (!targetItem) return prev;
+
+            const baseUnitCost = Number(targetItem.precioCompra || 0) / (targetItem.selectedPresentation.factorConversion || 1);
+            const newEstimatedCost = Number((baseUnitCost * newPresentation.factorConversion).toFixed(2));
+
+            if (alreadyExists && currentPresentationId !== newPresentation.id) {
+                return prev.map(i => {
+                    if (i.productoId === productoId && i.selectedPresentation.id === newPresentation.id) {
+                        return {
+                            ...i,
+                            cantidad: i.cantidad + targetItem.cantidad
+                        };
+                    }
+                    return i;
+                }).filter(i => !(i.productoId === productoId && i.selectedPresentation.id === currentPresentationId));
+            }
+
+            return prev.map(i => {
+                if (i.productoId === productoId && i.selectedPresentation.id === currentPresentationId) {
+                    return {
+                        ...i,
+                        selectedPresentation: newPresentation,
+                        precioCompra: newEstimatedCost
+                    };
+                }
+                return i;
+            });
+        });
+    };
 
     const limpiar = () => {
         setCarrito([]);
@@ -288,11 +344,7 @@ export const Compra = () => {
         setFormError("");
     };
 
-    const total = carrito.reduce((s, i) => {
-        const qty = i.porCaja ? i.cajas : i.cantidad;
-        const precio = i.porCaja ? Number(i.precioCompraCaja) : Number(i.precioCompra);
-        return s + (precio || 0) * qty;
-    }, 0);
+    const total = carrito.reduce((s, i) => s + (Number(i.precioCompra) || 0) * i.cantidad, 0);
 
     /* ── Confirmar ── */
     const confirmar = async () => {
@@ -309,18 +361,14 @@ export const Compra = () => {
             establecimientoId,
             proveedorId,
             detalles: carrito.map(i => {
-                let finalCantidad = i.cantidad;
-                let finalPrecio = Number(i.precioCompra);
-                
-                if (i.porCaja && i.unidadesCaja > 0) {
-                    finalCantidad = i.cajas * i.unidadesCaja;
-                    finalPrecio = Number(i.precioCompraCaja) / i.unidadesCaja;
-                }
-                
+                const factor = i.selectedPresentation.factorConversion || 1;
+                const cantidadFinal = i.cantidad * factor;
+                const precioCompraFinal = Number(i.precioCompra) / factor;
+
                 return {
                     productoId: i.productoId,
-                    cantidad: finalCantidad,
-                    precioCompra: finalPrecio,
+                    cantidad: cantidadFinal,
+                    precioCompra: precioCompraFinal,
                 };
             }),
         };
@@ -432,13 +480,14 @@ export const Compra = () => {
                             <div className={styles.cartList}>
                                 {carrito.map(item => (
                                     <CompraItem
-                                        key={item.productoId}
+                                        key={`${item.productoId}-${item.selectedPresentation.id}`}
                                         item={item}
                                         onAdd={incrementar}
                                         onRemove={decrementar}
                                         onDelete={eliminar}
                                         onPrecioChange={cambiarPrecio}
-                                        onToggleCaja={toggleCaja}
+                                        onChangePresentation={changePresentation}
+                                        onSetCantidad={setCantidad}
                                     />
                                 ))}
                             </div>
@@ -501,7 +550,7 @@ export const Compra = () => {
                         )}
                         <div className={styles.summaryRow}>
                             <span className={styles.summaryLabel}>Total de ítems</span>
-                            <span className={styles.summaryVal}>{carrito.reduce((s, i) => s + (i.porCaja ? i.cajas : i.cantidad), 0)}</span>
+                            <span className={styles.summaryVal}>{carrito.reduce((s, i) => s + i.cantidad, 0)}</span>
                         </div>
                         <div className={`${styles.summaryRow} ${styles.summaryTotal}`}>
                             <span>Total compra</span>

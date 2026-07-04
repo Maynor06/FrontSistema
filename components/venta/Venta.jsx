@@ -38,15 +38,15 @@ function estadoColor(nombre) {
    SECCIÓN: CARD ORDEN DEL DÍA
 ══════════════════════════════════════════════════════════════ */
 function OrdenCard({ orden, onClick }) {
-    const detalles = orden.detalles ?? orden.detalles_orden ?? orden.detalleOrden ?? orden.detallesOrden ?? [];
-    const total = detalles.length > 0 
+    const detalles = orden.ventas ?? orden.detalles_orden ?? orden.detalleOrden ?? orden.detallesOrden ?? [];
+    const total = detalles.length > 0
         ? detalles.reduce((s, d) => s + (Number(d.precioUnitario) * Number(d.cantidad)), 0)
         : Number(orden.total ?? 0);
 
     return (
-        <article 
-            className={styles.ordenCard} 
-            id={`orden-card-${orden.id}`} 
+        <article
+            className={styles.ordenCard}
+            id={`orden-card-${orden.id}`}
             onClick={() => onClick && onClick(orden)}
             style={{ cursor: onClick ? 'pointer' : 'default' }}
         >
@@ -76,75 +76,80 @@ function OrdenCard({ orden, onClick }) {
 /* ══════════════════════════════════════════════════════════════
    SECCIÓN: ITEM DEL CARRITO
 ══════════════════════════════════════════════════════════════ */
-function CartItem({ item, onAdd, onRemove, onDelete, onToggleDescuento, onToggleCaja, onSetCantidad }) {
-    const isCaja = item.porCaja;
-    // Si es por caja, usamos el precioCaja configurado.
-    const rawPrice = isCaja ? item.precioCaja : item.precioUnitario;
+function CartItem({ item, onAdd, onRemove, onDelete, onToggleDescuento, onChangePresentation, onSetCantidad }) {
+    const isUnidad = item.selectedPresentation.factorConversion === 1;
+    const rawPrice = (isUnidad && item.usandoDescuento && item.precioConDescuento != null)
+        ? item.precioConDescuento
+        : item.selectedPresentation.precioVenta;
     const subtotal = rawPrice * item.cantidad;
     const tieneDescuento = item.precioConDescuento != null && Number(item.precioConDescuento) > 0;
-    const tieneCaja = item.precioCaja != null && Number(item.precioCaja) > 0 && item.unidadesCaja > 1;
 
     return (
-        <div className={styles.cartItem} id={`cart-item-${item.productoId}`}>
+        <div className={styles.cartItem} id={`cart-item-${item.productoId}-${item.selectedPresentation.id}`}>
             <div className={styles.cartItemInfo}>
-                <p className={styles.cartItemName}>{item.nombre}</p>
+                <p className={styles.cartItemName}>
+                    {item.nombre}
+                    {item.valorVariacion && !item.nombre.toLowerCase().includes(item.valorVariacion.toLowerCase()) ? ` (${item.valorVariacion})` : ""}
+                    {" - "}{item.selectedPresentation.nombrePresentacion}
+                </p>
+
+                {/* Badges para los tipos de presentaciones */}
+                <div className={styles.presBadgesRow}>
+                    {item.variacionesDisponibles.map((pres) => (
+                        <button
+                            key={pres.id}
+                            type="button"
+                            className={`${styles.presBadge} ${item.selectedPresentation.id === pres.id ? styles.presBadgeActive : ""}`}
+                            onClick={() => onChangePresentation(item.productoId, item.selectedPresentation.id, pres)}
+                        >
+                            {pres.nombrePresentacion} (Q {Number(pres.precioVenta).toFixed(2)})
+                        </button>
+                    ))}
+                </div>
+
                 <div className={styles.cartPriceRow}>
-                    <p className={`${styles.cartItemPrice} ${item.usandoDescuento && !isCaja ? styles.precioTachado : ""}`}>
-                        {isCaja ? `Q ${Number(item.precioCaja).toFixed(2)} / caja` : `Q ${Number(item.precioOriginal).toFixed(2)}`}
+                    <p className={`${styles.cartItemPrice} ${item.usandoDescuento && isUnidad ? styles.precioTachado : ""}`}>
+                        Q {Number(item.selectedPresentation.precioVenta).toFixed(2)}
                     </p>
-                    {tieneDescuento && !isCaja && (
-                        <label className={styles.descCheckLabel} htmlFor={`chk-desc-${item.productoId}`}>
+                    {tieneDescuento && isUnidad && (
+                        <label className={styles.descCheckLabel} htmlFor={`chk-desc-${item.productoId}-${item.selectedPresentation.id}`}>
                             <input
                                 type="checkbox"
-                                id={`chk-desc-${item.productoId}`}
+                                id={`chk-desc-${item.productoId}-${item.selectedPresentation.id}`}
                                 checked={item.usandoDescuento}
-                                onChange={() => onToggleDescuento(item.productoId)}
+                                onChange={() => onToggleDescuento(item.productoId, item.selectedPresentation.id)}
                                 className={styles.descCheck}
                             />
                             <span className={styles.descCheckCustom} />
                             <Tag size={11} strokeWidth={2} />
-                            <span>Q {Number(item.precioConDescuento).toFixed(2)}</span>
-                        </label>
-                    )}
-                    {tieneCaja && (
-                        <label className={styles.cajaCheckLabel} htmlFor={`chk-caja-${item.productoId}`}>
-                            <input
-                                type="checkbox"
-                                id={`chk-caja-${item.productoId}`}
-                                checked={item.porCaja}
-                                onChange={() => onToggleCaja(item.productoId)}
-                                className={styles.descCheck}
-                            />
-                            <span className={styles.descCheckCustom} />
-                            <Package size={11} strokeWidth={2} />
-                            <span>Por Caja ({item.unidadesCaja} unid.)</span>
+                            <span>Descuento: Q {Number(item.precioConDescuento).toFixed(2)}</span>
                         </label>
                     )}
                 </div>
             </div>
 
             <div className={styles.cartItemControls}>
-                <button id={`btn-minus-${item.productoId}`} className={styles.qtyBtn}
-                    onClick={() => onRemove(item.productoId)} title="Quitar unidad">
+                <button id={`btn-minus-${item.productoId}-${item.selectedPresentation.id}`} className={styles.qtyBtn}
+                    onClick={() => onRemove(item.productoId, item.selectedPresentation.id)} title="Quitar unidad">
                     <Minus size={13} strokeWidth={2.5} />
                 </button>
-                <input 
+                <input
                     type="number"
                     min="1"
                     className={styles.qtyInput}
                     value={item.cantidad}
-                    onChange={(e) => onSetCantidad(item.productoId, e.target.value)}
+                    onChange={(e) => onSetCantidad(item.productoId, item.selectedPresentation.id, e.target.value)}
                 />
-                <button id={`btn-plus-${item.productoId}`} className={`${styles.qtyBtn} ${styles.qtyBtnAdd}`}
-                    onClick={() => onAdd(item.productoId)} title="Agregar unidad">
+                <button id={`btn-plus-${item.productoId}-${item.selectedPresentation.id}`} className={`${styles.qtyBtn} ${styles.qtyBtnAdd}`}
+                    onClick={() => onAdd(item.productoId, item.selectedPresentation.id)} title="Agregar unidad">
                     <Plus size={13} strokeWidth={2.5} />
                 </button>
             </div>
 
             <div className={styles.cartItemRight}>
                 <span className={styles.cartItemSubtotal}>Q {subtotal.toFixed(2)}</span>
-                <button id={`btn-del-${item.productoId}`} className={styles.cartItemDel}
-                    onClick={() => onDelete(item.productoId)} title="Eliminar">
+                <button id={`btn-del-${item.productoId}-${item.selectedPresentation.id}`} className={styles.cartItemDel}
+                    onClick={() => onDelete(item.productoId, item.selectedPresentation.id)} title="Eliminar">
                     <Trash2 size={13} strokeWidth={2} />
                 </button>
             </div>
@@ -177,8 +182,8 @@ function SuccessModal({ open, orden, onClose }) {
 ══════════════════════════════════════════════════════════════ */
 function OrdenDetalleModal({ open, orden, onClose }) {
     if (!open || !orden) return null;
-    const detalles = orden.detalles ?? orden.detalles_orden ?? orden.detalleOrden ?? orden.detallesOrden ?? [];
-    const total = detalles.length > 0 
+    const detalles = orden.ventas ?? orden.detalles_orden ?? orden.detalleOrden ?? orden.detallesOrden ?? [];
+    const total = detalles.length > 0
         ? detalles.reduce((s, d) => s + (Number(d.precioUnitario) * Number(d.cantidad)), 0)
         : Number(orden.total ?? 0);
 
@@ -191,13 +196,13 @@ function OrdenDetalleModal({ open, orden, onClose }) {
                         <X size={20} strokeWidth={2} />
                     </button>
                 </div>
-                
+
                 <div style={{ fontSize: '0.9rem', color: '#475569', marginBottom: '1rem', display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
                     <p style={{ margin: 0 }}><strong>ID:</strong> #{String(orden.id).slice(-8).toUpperCase()}</p>
-                    <p style={{ margin: 0 }}><strong>Estado:</strong> {orden.estadoOrden?.nombre ?? "—"}</p>
+                    <p style={{ margin: 0 }}><strong>Estado:</strong> {orden.estoOrden?.nombre ?? "—"}</p>
                     <p style={{ margin: 0 }}><strong>Fecha:</strong> {new Date(orden.fechaCreada ?? orden.createdAt ?? orden.fecha).toLocaleString()}</p>
                 </div>
-                
+
                 <h3 style={{ fontSize: '1rem', fontWeight: 600, margin: '1rem 0 0.5rem 0', color: '#1e293b' }}>Productos ({detalles.length})</h3>
                 <div style={{ maxHeight: '250px', overflowY: 'auto', borderTop: '1px solid #e2e8f0', paddingTop: '0.5rem', marginBottom: '1rem' }}>
                     {detalles.length === 0 ? (
@@ -218,7 +223,7 @@ function OrdenDetalleModal({ open, orden, onClose }) {
                         </ul>
                     )}
                 </div>
-                
+
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '1rem', borderTop: '1px solid #e2e8f0', fontWeight: 'bold', fontSize: '1.1rem', color: '#0f172a' }}>
                     <span>Total</span>
                     <span style={{ color: '#6366f1' }}>Q {Number(total).toFixed(2)}</span>
@@ -323,12 +328,12 @@ export const Venta = () => {
     useEffect(() => {
         const term = busqueda.trim().toLowerCase();
         if (term.length < 8) return; // Evitar coincidencia prematura con códigos cortos manuales
-        
+
         const exactMatch = productos.find(p => {
             const cod = (p.codigo_barras || p.codigo || p.codigoBarras || "").toLowerCase();
             return cod === term;
         });
-        
+
         if (exactMatch) {
             agregarProducto(exactMatch);
             setBusqueda("");
@@ -380,82 +385,106 @@ export const Venta = () => {
         setBusqueda("");
         setShowSug(false);
         setCarrito(prev => {
-            const existe = prev.find(i => i.productoId === String(prod.id));
+            const presentations = Array.isArray(prod.presentaciones) && prod.presentaciones.length > 0
+                ? prod.presentaciones.map(p => ({
+                    id: String(p.id),
+                    nombrePresentacion: p.nombrePresentacion || p.nombre || "Unidad",
+                    factorConversion: Number(p.factorConversion) || 1,
+                    precioVenta: Number(p.precioVenta) || 0
+                }))
+                : [{ id: "default", nombrePresentacion: "Unidad", factorConversion: 1, precioVenta: Number(prod.precioNormal || prod.precio || 0) }];
+
+            const defaultPres = presentations.find(p => p.factorConversion === 1) || presentations[0];
+
+            const existe = prev.find(i => i.productoId === String(prod.id) && i.selectedPresentation.id === defaultPres.id);
             if (existe) {
-                return prev.map(i => i.productoId === String(prod.id)
+                return prev.map(i => (i.productoId === String(prod.id) && i.selectedPresentation.id === defaultPres.id)
                     ? { ...i, cantidad: i.cantidad + 1 }
                     : i
                 );
             }
-            const precioOriginal = Number(prod.precio ?? prod.precioNormal ?? 0);
+
             const precioConDescuento = prod.precioConDescuento != null && Number(prod.precioConDescuento) > 0
                 ? Number(prod.precioConDescuento)
                 : null;
-            return [...prev, {
-                productoId: String(prod.id),
-                nombre: prod.nombre,
-                precioOriginal,
-                precioConDescuento,
-                precioUnitario: precioOriginal, // precio activo si no es caja
-                precioCaja: Number(prod.precioCaja) || 0,
-                unidadesCaja: Number(prod.unidadesCaja) || 1,
-                usandoDescuento: false,
-                porCaja: false,
-                cantidad: 1,
-            }];
+
+            return [
+                {
+                    productoId: String(prod.id),
+                    nombre: prod.nombre,
+                    valorVariacion: prod.valorVariacion || "",
+                    variacionesDisponibles: presentations,
+                    selectedPresentation: defaultPres,
+                    precioConDescuento,
+                    usandoDescuento: false,
+                    cantidad: 1,
+                },
+                ...prev
+            ];
         });
     };
 
-    const incrementar = (productoId) =>
-        setCarrito(prev => prev.map(i => i.productoId === productoId ? { ...i, cantidad: i.cantidad + 1 } : i));
+    const incrementar = (productoId, presentationId) =>
+        setCarrito(prev => prev.map(i => (i.productoId === productoId && i.selectedPresentation.id === presentationId) ? { ...i, cantidad: i.cantidad + 1 } : i));
 
-    const decrementar = (productoId) =>
+    const decrementar = (productoId, presentationId) =>
         setCarrito(prev => {
-            const item = prev.find(i => i.productoId === productoId);
+            const item = prev.find(i => i.productoId === productoId && i.selectedPresentation.id === presentationId);
             if (!item) return prev;
-            if (item.cantidad <= 1) return prev.filter(i => i.productoId !== productoId);
-            return prev.map(i => i.productoId === productoId ? { ...i, cantidad: i.cantidad - 1 } : i);
+            if (item.cantidad <= 1) return prev.filter(i => !(i.productoId === productoId && i.selectedPresentation.id === presentationId));
+            return prev.map(i => (i.productoId === productoId && i.selectedPresentation.id === presentationId) ? { ...i, cantidad: i.cantidad - 1 } : i);
         });
 
-    const setCantidad = (productoId, value) => {
+    const setCantidad = (productoId, presentationId, value) => {
         const val = parseInt(value, 10);
         if (isNaN(val) || val < 1) return;
-        setCarrito(prev => prev.map(i => i.productoId === productoId ? { ...i, cantidad: val } : i));
+        setCarrito(prev => prev.map(i => (i.productoId === productoId && i.selectedPresentation.id === presentationId) ? { ...i, cantidad: val } : i));
     };
 
-    const eliminarDelCarrito = (productoId) =>
-        setCarrito(prev => prev.filter(i => i.productoId !== productoId));
+    const eliminarDelCarrito = (productoId, presentationId) =>
+        setCarrito(prev => prev.filter(i => !(i.productoId === productoId && i.selectedPresentation.id === presentationId)));
 
-    /** Toggle precio con descuento por producto */
-    const toggleDescuento = (productoId) => {
+    const toggleDescuento = (productoId, presentationId) => {
         setCarrito(prev => prev.map(i => {
-            if (i.productoId !== productoId) return i;
+            if (i.productoId !== productoId || i.selectedPresentation.id !== presentationId) return i;
             const usandoDescuento = !i.usandoDescuento;
             return {
                 ...i,
                 usandoDescuento,
-                porCaja: false, // quitar caja si se activa descuento unidad
-                precioUnitario: usandoDescuento && i.precioConDescuento
-                    ? i.precioConDescuento
-                    : i.precioOriginal,
             };
         }));
     };
 
-    /** Toggle por caja */
-    const toggleCaja = (productoId) => {
-        setCarrito(prev => prev.map(i => {
-            if (i.productoId !== productoId) return i;
-            const porCaja = !i.porCaja;
-            return {
-                ...i,
-                porCaja,
-                usandoDescuento: porCaja ? false : i.usandoDescuento, // quitar descuento si es caja
-                precioUnitario: i.usandoDescuento && !porCaja && i.precioConDescuento
-                    ? i.precioConDescuento
-                    : i.precioOriginal,
-            };
-        }));
+    const changePresentation = (productoId, currentPresentationId, newPresentation) => {
+        setCarrito(prev => {
+            const alreadyExists = prev.find(i => i.productoId === productoId && i.selectedPresentation.id === newPresentation.id);
+            const targetItem = prev.find(i => i.productoId === productoId && i.selectedPresentation.id === currentPresentationId);
+
+            if (!targetItem) return prev;
+
+            if (alreadyExists && currentPresentationId !== newPresentation.id) {
+                return prev.map(i => {
+                    if (i.productoId === productoId && i.selectedPresentation.id === newPresentation.id) {
+                        return {
+                            ...i,
+                            cantidad: i.cantidad + targetItem.cantidad
+                        };
+                    }
+                    return i;
+                }).filter(i => !(i.productoId === productoId && i.selectedPresentation.id === currentPresentationId));
+            }
+
+            return prev.map(i => {
+                if (i.productoId === productoId && i.selectedPresentation.id === currentPresentationId) {
+                    return {
+                        ...i,
+                        selectedPresentation: newPresentation,
+                        usandoDescuento: false
+                    };
+                }
+                return i;
+            });
+        });
     };
 
     const limpiarCarrito = () => {
@@ -463,7 +492,13 @@ export const Venta = () => {
         setConfirmError("");
     };
 
-    const total = carrito.reduce((s, i) => s + (i.porCaja ? i.precioCaja : i.precioUnitario) * i.cantidad, 0);
+    const total = carrito.reduce((s, i) => {
+        const isUnidad = i.selectedPresentation.factorConversion === 1;
+        const rawPrice = (isUnidad && i.usandoDescuento && i.precioConDescuento != null)
+            ? i.precioConDescuento
+            : i.selectedPresentation.precioVenta;
+        return s + (rawPrice * i.cantidad);
+    }, 0);
 
     /* ──────────────────────────────────────────────
        Confirmar orden
@@ -475,19 +510,25 @@ export const Venta = () => {
         if (!establecimientoId) { setConfirmError("El usuario no tiene establecimiento asignado."); return; }
 
         const payload = {
-            clienteId: "1",           // siempre cliente genérico del sistema
+            clienteId: "1",
             establecimientoId,
             estadoOrdenId,
             usuarioId,
             nitFacturacion: "CF",
             nombreFacturacion: "sistema",
             detalles: carrito.map(i => {
+                const isUnidad = i.selectedPresentation.factorConversion === 1;
                 let cantidadFinal = i.cantidad;
-                let precioUnitarioFinal = i.precioUnitario;
-                if (i.porCaja && i.unidadesCaja > 0) {
-                    cantidadFinal = i.cantidad * i.unidadesCaja;
-                    precioUnitarioFinal = i.precioCaja / i.unidadesCaja;
+                let precioUnitarioFinal = i.selectedPresentation.precioVenta;
+
+                if (isUnidad && i.usandoDescuento && i.precioConDescuento != null) {
+                    precioUnitarioFinal = i.precioConDescuento;
+                } else {
+                    const factor = i.selectedPresentation.factorConversion || 1;
+                    cantidadFinal = i.cantidad * factor;
+                    precioUnitarioFinal = i.selectedPresentation.precioVenta / factor;
                 }
+
                 return {
                     productoId: i.productoId,
                     cantidad: cantidadFinal,
@@ -502,7 +543,7 @@ export const Venta = () => {
             setSuccessModalData(orden);
             limpiarCarrito();
             loadOrdenesHoy();
-            mutateProducts(); // Actualizar productos después de la venta (stock)
+            mutateProducts();
         } catch (err) {
             setConfirmError(err.message || "No se pudo crear la orden.");
         } finally {
@@ -581,8 +622,11 @@ export const Venta = () => {
 
                             {showSug && (
                                 <ul className={styles.dropdown} id="dropdown-products">
+                                    {console.log({ sugerencias })}
                                     {sugerencias.map(p => {
-                                        const precio = Number(p.precio ?? p.precioNormal ?? 0);
+                                        const presentations = Array.isArray(p.presentaciones) ? p.presentaciones : [];
+                                        const unidadPres = presentations.find(x => String(x.nombrePresentacion || "").toLowerCase() === "unidad" || Number(x.factorConversion) === 1) || presentations[0];
+                                        const precio = Number(unidadPres?.precioVenta || p.precioNormal || p.precio || 0);
                                         const descuento = p.precioConDescuento != null && Number(p.precioConDescuento) > 0
                                             ? Number(p.precioConDescuento) : null;
                                         return (
@@ -613,7 +657,6 @@ export const Venta = () => {
                             )}
                         </div>
                     </div>
-
                     {/* ── Carrito ── */}
                     <div className={`${styles.section} ${styles.sectionFlex}`}>
                         <div className={styles.sectionLabelRow}>
@@ -634,13 +677,13 @@ export const Venta = () => {
                             <div className={styles.cartList}>
                                 {carrito.map(item => (
                                     <CartItem
-                                        key={item.productoId}
+                                        key={`${item.productoId}-${item.selectedPresentation.id}`}
                                         item={item}
                                         onAdd={incrementar}
                                         onRemove={decrementar}
                                         onDelete={eliminarDelCarrito}
                                         onToggleDescuento={toggleDescuento}
-                                        onToggleCaja={toggleCaja}
+                                        onChangePresentation={changePresentation}
                                         onSetCantidad={setCantidad}
                                     />
                                 ))}
@@ -737,10 +780,10 @@ export const Venta = () => {
                         ) : (
                             <div className={styles.ordenesGrid}>
                                 {[...ordenesHoy].reverse().map(o => (
-                                    <OrdenCard 
-                                        key={o.id} 
-                                        orden={o} 
-                                        onClick={(ord) => setDetalleModalOpen(ord)} 
+                                    <OrdenCard
+                                        key={o.id}
+                                        orden={o}
+                                        onClick={(ord) => setDetalleModalOpen(ord)}
                                     />
                                 ))}
                             </div>
