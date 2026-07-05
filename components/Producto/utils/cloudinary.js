@@ -19,6 +19,9 @@ export async function uploadImagesToCloudinary(files) {
     }
 }
 
+console.log({ CLOUDINARY_CLOUD_NAME });
+console.log({ CLOUDINARY_UPLOAD_PRESET });
+
 /**
  * Upload a single image to Cloudinary
  * @param {File} file - Image file to upload
@@ -29,6 +32,8 @@ async function uploadSingleImage(file) {
     formData.append('file', file);
     formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
     formData.append('cloud_name', CLOUDINARY_CLOUD_NAME);
+    console.log({ CLOUDINARY_CLOUD_NAME });
+    console.log({ CLOUDINARY_UPLOAD_PRESET });
 
     try {
         const response = await fetch(

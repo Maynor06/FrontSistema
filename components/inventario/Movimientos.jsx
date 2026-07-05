@@ -57,7 +57,7 @@ export function Movimientos() {
     e.preventDefault();
     setAjusteExito("");
     setErrorAjuste("");
-    
+
     if (!productoIdAjuste.trim() || !establecimientoId.trim() || !afectacion) {
       setErrorAjuste("Producto ID, Establecimiento ID y Afectación son obligatorios.");
       return;
@@ -65,8 +65,8 @@ export function Movimientos() {
 
     const usuario = getUsuario();
     if (!usuario?.id) {
-       setErrorAjuste("No se encontró usuario activo para realizar el movimiento.");
-       return;
+      setErrorAjuste("No se encontró usuario activo para realizar el movimiento.");
+      return;
     }
 
     setLoadingAjuste(true);
@@ -85,10 +85,10 @@ export function Movimientos() {
       setAfectacion("");
       setPrecio("");
       setDescripcion("");
-      
+
       // Recargar la lista si corresponde
       if (productoId) {
-         buscarMovimientos();
+        buscarMovimientos();
       }
     } catch (err) {
       setErrorAjuste(err.message || "No se pudo registrar el movimiento.");
@@ -100,7 +100,7 @@ export function Movimientos() {
   return (
     <div className={styles.movimientosContainer}>
       <div className={styles.movimientosGrid}>
-        
+
         {/* Lado derecho: Formulario de Ajuste */}
         <div className={styles.panelLateral}>
           <h2 className={styles.panelTitle}>
@@ -123,17 +123,6 @@ export function Movimientos() {
                     <option key={p.id} value={p.id}>{p.nombre} {p.slug ? `(/${p.slug})` : ''}</option>
                   ))}
                 </select>
-              </div>
-              <div className={styles.formGroup}>
-                <label>ID Establecimiento *</label>
-                <input
-                  type="text"
-                  placeholder="Ej. 1"
-                  value={establecimientoId}
-                  onChange={(e) => setEstablecimientoId(e.target.value)}
-                  className={styles.inputForm}
-                  required
-                />
               </div>
             </div>
 
@@ -162,7 +151,7 @@ export function Movimientos() {
               </div>
             </div>
 
-             <div className={styles.formGroup}>
+            <div className={styles.formGroup}>
               <label>Descripción</label>
               <textarea
                 placeholder="Razón del ajuste..."
@@ -178,7 +167,7 @@ export function Movimientos() {
                 <AlertCircle size={16} /> {errorAjuste}
               </div>
             )}
-            
+
             {ajusteExito && (
               <div className={styles.successAlert}>
                 <CheckCircle2 size={16} /> {ajusteExito}
@@ -190,7 +179,7 @@ export function Movimientos() {
               className={styles.btnPrimaryFull}
               disabled={loadingAjuste}
             >
-              {loadingAjuste ? <Loader2 size={16} className={styles.spin} /> : <><Plus size={16}/> Registrar Ajuste</>}
+              {loadingAjuste ? <Loader2 size={16} className={styles.spin} /> : <><Plus size={16} /> Registrar Ajuste</>}
             </button>
           </form>
         </div>
@@ -231,7 +220,7 @@ export function Movimientos() {
             {movimientos.length === 0 && !loadingMovimientos && !errorBusqueda && (
               <p className={styles.emptyTextWrapper}>Busca un producto para ver sus movimientos.</p>
             )}
-            
+
             {movimientos.map((mov) => (
               <div key={mov.id} className={styles.movCard}>
                 <div className={styles.movHeader}>

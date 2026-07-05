@@ -7,6 +7,7 @@ import {
 } from "lucide-react";
 import Api from "@/lib/api";
 import styles from "./Inventario.module.css";
+import { getUsuario } from "@/lib/auth";
 
 /* ──────────────────────────────────────────────
    HELPERS
@@ -26,6 +27,12 @@ function InventarioCard({ item }) {
     const cantidad = Number(item.cantidad ?? item.stock ?? 0);
     const { label, cls, Icon } = nivelStock(cantidad);
 
+    const prodNombre = item.producto?.nombre ?? item.nombre ?? `Producto #${item.productoId ?? item.id}`;
+    const valorVariacion = item.producto?.valorVariacion || item.valorVariacion;
+    const displayName = valorVariacion && !prodNombre.toLowerCase().includes(valorVariacion.toLowerCase())
+        ? `${prodNombre} (${valorVariacion})`
+        : prodNombre;
+
     return (
         <article className={styles.card} id={`inv-card-${item.id}`}>
             <div className={styles.cardIcon}>
@@ -33,13 +40,29 @@ function InventarioCard({ item }) {
             </div>
             <div className={styles.cardBody}>
                 <p className={styles.cardName}>
-                    {item.producto?.nombre ?? item.nombre ?? `Producto #${item.productoId ?? item.id}`}
+                    {displayName}
                 </p>
                 {(item.producto?.slug || item.slug) && (
                     <p className={styles.cardSlug}>/{item.producto?.slug ?? item.slug}</p>
                 )}
                 {item.establecimiento?.nombre && (
                     <p className={styles.cardEst}>{item.establecimiento.nombre}</p>
+                )}
+
+                {/* Cantidad equivalente en las distintas presentaciones del producto */}
+                {item.producto?.presentaciones && item.producto.presentaciones.length > 0 && (
+                    <div className={styles.inventarioPresentaciones}>
+                        {item.producto.presentaciones.map(pres => {
+                            const factor = Number(pres.factorConversion) || 1;
+                            const division = cantidad / factor;
+                            const valorFinal = division > 0 ? parseInt(division) : 0;
+                            return (
+                                <span key={pres.id} className={styles.presQtyBadge} title={`${pres.nombrePresentacion} (Factor: ${factor})`}>
+                                    <strong>{valorFinal}</strong> {pres.nombrePresentacion}
+                                </span>
+                            );
+                        })}
+                    </div>
                 )}
             </div>
             <div className={styles.cardRight}>
@@ -59,17 +82,20 @@ import { Movimientos } from "./Movimientos";
    COMPONENTE PRINCIPAL
 ────────────────────────────────────────────── */
 export const Inventario = () => {
+    const usuario = getUsuario();
     const [activeTab, setActiveTab] = useState("existencias");
     const [inventario, setInventario] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
     const [busqueda, setBusqueda] = useState("");
 
+    const estId = usuario?.establecimiento?.id ?? usuario?.establecimientoId ?? "";
+
     const loadInventario = useCallback(async () => {
         setLoading(true);
         setError("");
         try {
-            const data = await Api.get("/inventario");
+            const data = await Api.get("/inventario/establecimiento/" + estId);
             setInventario(Array.isArray(data) ? data : []);
         } catch (err) {
             setError(err.message || "No se pudo cargar el inventario.");
@@ -125,13 +151,13 @@ export const Inventario = () => {
             </div>
 
             <div className={styles.tabsContainer}>
-                <button 
+                <button
                     className={`${styles.tabBtn} ${activeTab === 'existencias' ? styles.tabActive : ''}`}
                     onClick={() => setActiveTab('existencias')}
                 >
                     Existencias
                 </button>
-                <button 
+                <button
                     className={`${styles.tabBtn} ${activeTab === 'movimientos' ? styles.tabActive : ''}`}
                     onClick={() => setActiveTab('movimientos')}
                 >
@@ -141,64 +167,64 @@ export const Inventario = () => {
 
             {activeTab === 'existencias' ? (
                 <>
-                {/* ── Stats rápidas ── */}
-                {!loading && !error && (
-                    <div className={styles.statsRow}>
-                        <div className={styles.statCard}>
-                            <span className={styles.statNum}>{stats.total}</span>
-                            <span className={styles.statLabel}>Productos</span>
+                    {/* ── Stats rápidas ── */}
+                    {!loading && !error && (
+                        <div className={styles.statsRow}>
+                            <div className={styles.statCard}>
+                                <span className={styles.statNum}>{stats.total}</span>
+                                <span className={styles.statLabel}>Productos</span>
+                            </div>
+                            <div className={`${styles.statCard} ${stats.sinStock > 0 ? styles.statCardDanger : ""}`}>
+                                <span className={styles.statNum}>{stats.sinStock}</span>
+                                <span className={styles.statLabel}>Sin stock</span>
+                            </div>
+                            <div className={`${styles.statCard} ${stats.stockBajo > 0 ? styles.statCardWarn : ""}`}>
+                                <span className={styles.statNum}>{stats.stockBajo}</span>
+                                <span className={styles.statLabel}>Stock bajo (≤5)</span>
+                            </div>
                         </div>
-                        <div className={`${styles.statCard} ${stats.sinStock > 0 ? styles.statCardDanger : ""}`}>
-                            <span className={styles.statNum}>{stats.sinStock}</span>
-                            <span className={styles.statLabel}>Sin stock</span>
-                        </div>
-                        <div className={`${styles.statCard} ${stats.stockBajo > 0 ? styles.statCardWarn : ""}`}>
-                            <span className={styles.statNum}>{stats.stockBajo}</span>
-                            <span className={styles.statLabel}>Stock bajo (≤5)</span>
-                        </div>
+                    )}
+
+                    {/* ── Buscador ── */}
+                    <div className={styles.searchWrap}>
+                        <Search size={15} className={styles.searchIco} strokeWidth={2} />
+                        <input
+                            id="input-buscar-inv"
+                            type="text"
+                            className={styles.searchInput}
+                            placeholder="Buscar por nombre o slug…"
+                            value={busqueda}
+                            onChange={e => setBusqueda(e.target.value)}
+                        />
                     </div>
-                )}
 
-            {/* ── Buscador ── */}
-            <div className={styles.searchWrap}>
-                <Search size={15} className={styles.searchIco} strokeWidth={2} />
-                <input
-                    id="input-buscar-inv"
-                    type="text"
-                    className={styles.searchInput}
-                    placeholder="Buscar por nombre o slug…"
-                    value={busqueda}
-                    onChange={e => setBusqueda(e.target.value)}
-                />
-            </div>
-
-            {/* ── Contenido ── */}
-            {loading ? (
-                <div className={styles.centerMsg}>
-                    <Loader2 size={26} className={styles.spin} />
-                    <span>Cargando inventario…</span>
-                </div>
-            ) : error ? (
-                <div className={styles.centerMsg}>
-                    <AlertCircle size={20} className={styles.errorColor} />
-                    <span className={styles.errorColor}>{error}</span>
-                    <button className={styles.btnRetry} onClick={loadInventario}>Reintentar</button>
-                </div>
-            ) : filtrado.length === 0 ? (
-                <div className={styles.emptyState}>
-                    <Boxes size={44} strokeWidth={1} className={styles.emptyIcon} />
-                    <p className={styles.emptyText}>
-                        {busqueda ? "Sin resultados para esa búsqueda." : "No hay registros de inventario."}
-                    </p>
-                </div>
-            ) : (
-                <div className={styles.list}>
-                    {filtrado.map(item => (
-                        <InventarioCard key={item.id} item={item} />
-                    ))}
-                </div>
-            )}
-            </>
+                    {/* ── Contenido ── */}
+                    {loading ? (
+                        <div className={styles.centerMsg}>
+                            <Loader2 size={26} className={styles.spin} />
+                            <span>Cargando inventario…</span>
+                        </div>
+                    ) : error ? (
+                        <div className={styles.centerMsg}>
+                            <AlertCircle size={20} className={styles.errorColor} />
+                            <span className={styles.errorColor}>{error}</span>
+                            <button className={styles.btnRetry} onClick={loadInventario}>Reintentar</button>
+                        </div>
+                    ) : filtrado.length === 0 ? (
+                        <div className={styles.emptyState}>
+                            <Boxes size={44} strokeWidth={1} className={styles.emptyIcon} />
+                            <p className={styles.emptyText}>
+                                {busqueda ? "Sin resultados para esa búsqueda." : "No hay registros de inventario."}
+                            </p>
+                        </div>
+                    ) : (
+                        <div className={styles.list}>
+                            {filtrado.map(item => (
+                                <InventarioCard key={item.id} item={item} />
+                            ))}
+                        </div>
+                    )}
+                </>
             ) : (
                 <Movimientos />
             )}

@@ -207,6 +207,30 @@
     margin: 0;
 }
 
+.inventarioPresentaciones {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+    margin-top: 0.5rem;
+}
+
+.presQtyBadge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.15rem 0.45rem;
+    background: #f1f5f9;
+    border: 1px solid #e2e8f0;
+    border-radius: 0.375rem;
+    font-size: 0.68rem;
+    color: #475569;
+}
+
+.presQtyBadge strong {
+    color: #4f46e5;
+    font-weight: 700;
+}
+
 .cardRight {
     display: flex;
     flex-direction: column;
