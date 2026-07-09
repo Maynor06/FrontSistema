@@ -8,6 +8,8 @@ import {
 } from "lucide-react";
 import Api from "@/lib/api";
 import styles from "./Usuario.module.css";
+import { getUsuario } from "@/lib/auth";
+
 
 /* ══════════════════════════════════════════════
    HELPERS
@@ -388,8 +390,8 @@ function UsuarioModal({ open, onClose, onSaved, initial }) {
         Api.get("/rol").then(d => setRoles(Array.isArray(d) ? d : [])).catch(() => setRoles([])).finally(() => setRolesLoading(false));
 
         // Cargar establecimientos
-        setEstLoading(true);
-        Api.get("/establecimiento").then(d => setEstablecimientos(Array.isArray(d) ? d : [])).catch(() => setEstablecimientos([])).finally(() => setEstLoading(false));
+        //setEstLoading(true);
+        //Api.get("/establecimiento").then(d => setEstablecimientos(Array.isArray(d) ? d : [])).catch(() => setEstablecimientos([])).finally(() => setEstLoading(false));
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [open, initial, isEdit]);
 
@@ -578,8 +580,10 @@ const TABS = [
 ];
 
 const Usuario = () => {
+    const session = getUsuario();
     const [activeTab, setActiveTab] = useState("usuarios");
 
+    console.log({ session })
     /* ─── Estado por sección ─── */
     const [usuarios, setUsuarios] = useState([]);
     const [usuariosLoading, setUsuariosLoading] = useState(true);
@@ -609,7 +613,7 @@ const Usuario = () => {
     /* ── Loaders ── */
     const loadUsuarios = useCallback(async () => {
         setUsuariosLoading(true); setUsuariosError("");
-        try { const d = await Api.get("/usuario"); setUsuarios(Array.isArray(d) ? d : []); }
+        try { const d = await Api.get(`/usuario/establecimiento/${session?.establecimiento?.id}/${session?.id}`); setUsuarios(Array.isArray(d) ? d : []); }
         catch (e) { setUsuariosError(e.message || "Error al cargar usuarios."); }
         finally { setUsuariosLoading(false); }
     }, []);

@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Store, Package, ShoppingCart, LogOut, ShoppingBag, LayoutList, Users, Boxes, Receipt, Truck, Layers, BarChart3 } from "lucide-react";
+import { Store, Package, ShoppingCart, LogOut, ShoppingBag, LayoutList, Users, Boxes, Receipt, Truck, Layers, BarChart3, User } from "lucide-react";
 import { clearSession, getUsuario } from "@/lib/auth";
 import navItems from "@/data/navigation.json";
 import styles from "./Sidebar.module.css";
@@ -28,11 +28,23 @@ export default function Sidebar() {
   const router = useRouter();
   const [usuario, setUsuario] = useState(null);
   const [isMounted, setIsMounted] = useState(false);
+  const [showPopover, setShowPopover] = useState(false);
 
   useEffect(() => {
     setIsMounted(true);
     setUsuario(getUsuario());
   }, []);
+
+  useEffect(() => {
+    if (!showPopover) return;
+    const handleOutsideClick = (e) => {
+      if (!e.target.closest(`.${styles.avatarWrap}`)) {
+        setShowPopover(false);
+      }
+    };
+    document.addEventListener("click", handleOutsideClick);
+    return () => document.removeEventListener("click", handleOutsideClick);
+  }, [showPopover]);
 
   const handleLogout = () => {
     clearSession();
@@ -72,16 +84,27 @@ export default function Sidebar() {
       <div className={styles.footer}>
         {usuario && (
           <div className={styles.avatarWrap}>
-            <div className={styles.avatar} id="sidebar-user-avatar">
+            <div
+              className={`${styles.avatar} ${showPopover ? styles.avatarActive : ""}`}
+              id="sidebar-user-avatar"
+              onClick={() => setShowPopover(!showPopover)}
+            >
               {usuario.nombre?.[0]?.toUpperCase() ?? "U"}
             </div>
             {/* Popover info usuario */}
-            <div className={styles.userPopover}>
+            <div className={`${styles.userPopover} ${showPopover ? styles.userPopoverOpen : ""}`}>
               <p className={styles.popoverName}>{usuario.nombre}</p>
               <p className={styles.popoverUser}>@{usuario.nombreUsuario}</p>
               {usuario.rol?.nombre && (
                 <span className={styles.popoverRole}>{usuario.rol.nombre}</span>
               )}
+              <Link
+                href="/dashboard/perfil"
+                className={styles.popoverProfileBtn}
+                onClick={() => setShowPopover(false)}
+              >
+                <User size={14} strokeWidth={2} /> Ver perfil
+              </Link>
               <button
                 id="btn-logout-popover"
                 className={styles.popoverLogout}
